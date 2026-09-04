@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import Image from 'next/image'
+import { Plus, Edit2 } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
 import type { Stock } from '@/types'
@@ -13,48 +14,81 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
   const router = useRouter()
   const [stocks, setStocks] = useState<Stock[]>(initial)
   const [showForm, setShowForm] = useState(false)
+  const [editingStock, setEditingStock] = useState<Stock | null>(null)
+  
   const [symbol, setSymbol] = useState('')
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [changePercent, setChangePercent] = useState('0')
   const [market, setMarket] = useState('NASDAQ')
   const [description, setDescription] = useState('')
+  const [iconUrl, setIconUrl] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => {
+    setEditingStock(null)
+    setSymbol('')
+    setName('')
+    setPrice('')
+    setChangePercent('0')
+    setMarket('NASDAQ')
+    setDescription('')
+    setIconUrl('')
+    setShowForm(true)
+  }
+
+  const openEdit = (s: Stock) => {
+    setEditingStock(s)
+    setSymbol(s.symbol)
+    setName(s.name)
+    setPrice(String(s.price))
+    setChangePercent(String(s.change_percent))
+    setMarket(s.market)
+    setDescription(s.description || '')
+    setIconUrl(s.icon_url || '')
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
-    const { data, error } = await supabase.from('stocks').insert({
-      symbol: symbol.toUpperCase(),
-      name,
-      price: parseFloat(price),
-      change_percent: parseFloat(changePercent),
-      market,
-      description,
-      is_published: true,
-    }).select().single()
 
-    if (!error && data) {
-      setStocks(prev => [...prev, data])
-      setShowForm(false)
-      setSymbol('')
-      setName('')
-      setPrice('')
-      router.refresh()
+    if (editingStock) {
+      const { data, error } = await supabase.from('stocks').update({
+        symbol: symbol.toUpperCase(),
+        name,
+        price: parseFloat(price),
+        change_percent: parseFloat(changePercent),
+        market,
+        description,
+        icon_url: iconUrl || null,
+      }).eq('id', editingStock.id).select().single()
+
+      if (!error && data) {
+        setStocks(prev => prev.map(s => s.id === data.id ? data : s))
+        setShowForm(false)
+        router.refresh()
+      }
+    } else {
+      const { data, error } = await supabase.from('stocks').insert({
+        symbol: symbol.toUpperCase(),
+        name,
+        price: parseFloat(price),
+        change_percent: parseFloat(changePercent),
+        market,
+        description,
+        icon_url: iconUrl || null,
+        is_published: true,
+      }).select().single()
+
+      if (!error && data) {
+        setStocks(prev => [...prev, data])
+        setShowForm(false)
+        router.refresh()
+      }
     }
     setLoading(false)
-  }
-
-  const handleUpdatePrice = async (id: string, newPrice: string, newChange: string) => {
-    const p = parseFloat(newPrice)
-    const c = parseFloat(newChange)
-    if (isNaN(p)) return
-
-    const supabase = createClient()
-    await supabase.from('stocks').update({ price: p, change_percent: c }).eq('id', id)
-    setStocks(prev => prev.map(s => s.id === id ? { ...s, price: p, change_percent: c } : s))
-    router.refresh()
   }
 
   const handleTogglePublish = async (id: string, current: boolean) => {
@@ -70,14 +104,16 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Market data</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">Stocks ({stocks.length})</h1>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 border border-border px-4 py-3 text-xs font-bold hover:border-primary">
+        <button onClick={openCreate} className="flex items-center gap-2 border border-border px-4 py-3 text-xs font-bold hover:border-primary">
           <Plus size={16} /> Add stock
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="mt-8 border border-border bg-card p-6 flex flex-col gap-4">
-          <p className="font-mono text-xs uppercase text-primary">Add market stock</p>
+        <form onSubmit={handleSubmit} className="mt-8 border border-border bg-card p-6 flex flex-col gap-4">
+          <p className="font-mono text-xs uppercase text-primary">
+            {editingStock ? `Edit stock ${editingStock.symbol}` : 'Add market stock'}
+          </p>
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="flex flex-col gap-1 text-xs font-bold">
               Symbol (e.g. TSLA)
@@ -99,6 +135,10 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
               Market Exchange
               <input value={market} onChange={e => setMarket(e.target.value)} required className="h-10 border border-border bg-background px-3" />
             </label>
+            <label className="flex flex-col gap-1 text-xs font-bold">
+              Icon Image URL
+              <input value={iconUrl} onChange={e => setIconUrl(e.target.value)} placeholder="https://logo.clearbit.com/tesla.com" className="h-10 border border-border bg-background px-3" />
+            </label>
           </div>
           <label className="flex flex-col gap-1 text-xs font-bold">
             Description
@@ -106,7 +146,7 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
           </label>
           <div className="flex gap-2">
             <button type="submit" disabled={loading} className="bg-primary px-6 py-3 text-xs font-bold text-primary-foreground">
-              {loading ? 'Adding...' : 'Add stock'}
+              {loading ? 'Saving...' : editingStock ? 'Update stock' : 'Add stock'}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="border border-border px-6 py-3 text-xs font-bold">Cancel</button>
           </div>
@@ -117,7 +157,13 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
         {stocks.map(s => (
           <div key={s.id} className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-5 last:border-0">
             <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center bg-foreground font-mono text-xs text-background">{s.symbol.slice(0, 2)}</div>
+              {s.icon_url ? (
+                <div className="relative size-9 overflow-hidden rounded-full border border-border bg-background p-1">
+                  <Image src={s.icon_url} alt={s.name} fill className="object-contain" />
+                </div>
+              ) : (
+                <div className="grid size-9 place-items-center bg-foreground font-mono text-xs text-background">{s.symbol.slice(0, 2)}</div>
+              )}
               <div>
                 <p className="text-sm font-bold">{s.name} ({s.symbol})</p>
                 <p className="font-mono text-[10px] text-muted-foreground">{s.market}</p>
@@ -128,6 +174,12 @@ export function AdminStocksClient({ stocks: initial }: { stocks: Stock[] }) {
                 <p className="text-sm font-bold">{fmt(Number(s.price))}</p>
                 <p className={`text-xs ${Number(s.change_percent) >= 0 ? 'text-green-500' : 'text-primary'}`}>{Number(s.change_percent) >= 0 ? '+' : ''}{Number(s.change_percent)}%</p>
               </div>
+              <button
+                onClick={() => openEdit(s)}
+                className="flex items-center gap-1 border border-border px-3 py-1 text-xs font-bold hover:border-primary"
+              >
+                <Edit2 size={13} /> Edit
+              </button>
               <button
                 onClick={() => handleTogglePublish(s.id, s.is_published)}
                 className={`px-3 py-1 text-xs font-bold ${s.is_published ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground'}`}

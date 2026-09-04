@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowDownRight, ArrowUpRight, Search, TrendingUp } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowDownRight, TrendingUp } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
@@ -23,7 +24,7 @@ export default async function StocksPage() {
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Public markets</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">Stocks</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Track the companies shaping tomorrow.</p>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Track and invest in companies shaping tomorrow.</p>
         </div>
       </div>
 
@@ -36,9 +37,15 @@ export default async function StocksPage() {
             <span className="hidden text-right sm:block">Market</span>
           </div>
           {stocks.map(s => (
-            <Link key={s.id} href={`/stocks/${s.symbol.toLowerCase()}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-muted/30">
+            <Link key={s.id} href={`/stocks/${s.symbol.toLowerCase()}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 border-b border-border px-5 py-4 last:border-0 hover:bg-muted/30 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="grid size-9 place-items-center bg-foreground font-mono text-xs text-background">{s.symbol.slice(0, 2)}</div>
+                {s.icon_url ? (
+                  <div className="relative size-9 overflow-hidden rounded-full border border-border bg-background p-1">
+                    <Image src={s.icon_url} alt={s.name} fill className="object-contain" />
+                  </div>
+                ) : (
+                  <div className="grid size-9 place-items-center bg-foreground font-mono text-xs text-background">{s.symbol.slice(0, 2)}</div>
+                )}
                 <div>
                   <p className="text-sm font-bold">{s.name}</p>
                   <p className="font-mono text-[10px] text-muted-foreground">{s.symbol}</p>

@@ -7,17 +7,8 @@ export default async function VipPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('vip_tier, vip_expires_at')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const { data: tiers } = await supabase.from('vip_tiers').select('*').eq('is_active', true).order('price')
 
-  const { data: tiers } = await supabase
-    .from('vip_tiers')
-    .select('*')
-    .eq('is_active', true)
-    .order('price')
-
-  return <VipClient tiers={tiers || []} currentTier={profile?.vip_tier || 'standard'} expiresAt={profile?.vip_expires_at} />
+  return <VipClient tiers={tiers || []} profile={profile} />
 }

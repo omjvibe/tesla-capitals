@@ -4,12 +4,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, WalletCards, X } from 'lucide-react'
+import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
 import { useAuth, useTheme } from '@/lib/auth/provider'
 import { GoogleTranslate } from '@/components/google-translate'
 
 const userNav = [
   { href: '/dashboard', label: 'Overview', icon: Home },
+  { href: '/wallet', label: 'Digital Wallet', icon: Wallet },
   { href: '/investments', label: 'Investments', icon: BriefcaseBusiness },
   { href: '/stocks', label: 'Stocks', icon: BarChart3 },
   { href: '/portfolio', label: 'Portfolio', icon: WalletCards },
@@ -23,6 +24,7 @@ const userNav = [
 
 const adminNav = [
   { href: '/admin', label: 'Command center', icon: Home },
+  { href: '/admin/wallet', label: 'Wallet Manager', icon: Wallet },
   { href: '/admin/users', label: 'Users', icon: UserRound },
   { href: '/admin/investments', label: 'Investments', icon: BriefcaseBusiness },
   { href: '/admin/stocks', label: 'Stocks', icon: BarChart3 },
@@ -31,6 +33,7 @@ const adminNav = [
   { href: '/admin/vip', label: 'VIP Tiers', icon: ShieldCheck },
   { href: '/admin/giveaways', label: 'Giveaways', icon: Gift },
   { href: '/admin/kyc', label: 'KYC Review', icon: ShieldCheck },
+  { href: '/admin/emails', label: 'Resend Inbox', icon: Mail },
   { href: '/admin/support', label: 'Support', icon: CircleHelp },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
@@ -92,7 +95,7 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
           <Brand />
           <button onClick={() => setOpen(false)} className="lg:hidden"><X size={20} /></button>
         </div>
-        <div className="mt-10 border-y border-border py-3">
+        <div className="mt-8 border-y border-border py-3">
           <p className="px-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             {admin ? 'Admin control' : 'Personal account'}
           </p>
@@ -103,7 +106,7 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 border-l-2 px-3 py-3 text-sm transition-all duration-200 ${
+              className={`flex items-center gap-3 border-l-2 px-3 py-2.5 text-sm transition-all duration-200 ${
                 pathname === href
                   ? 'border-primary bg-primary text-primary-foreground font-bold shadow-md'
                   : 'border-transparent text-muted-foreground hover:border-primary hover:bg-muted hover:text-foreground'
@@ -123,7 +126,7 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium">{loading ? 'Loading...' : displayName}</p>
             <p className="text-[10px] text-muted-foreground">
-              {admin ? 'Administrator' : profile?.vip_tier === 'platinum' ? 'Platinum member' : profile?.vip_tier === 'vip' ? 'VIP member' : 'Standard member'}
+              {admin ? 'Administrator' : profile?.vip_tier ? `${profile.vip_tier.toUpperCase()} member` : 'Standard member'}
             </p>
           </div>
           <button onClick={handleSignOut} title="Sign out" className="text-muted-foreground transition-colors hover:text-primary active:scale-90">

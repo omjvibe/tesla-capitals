@@ -3,31 +3,44 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Wallet } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
-import type { Investment, InvestmentHolding } from '@/types'
+import { useToast } from '@/components/ui/toast'
+import type { Investment, InvestmentHolding, Profile } from '@/types'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
 
-export function InvestmentDetailClient({ investment, holding, userId }: { investment: Investment; holding: InvestmentHolding | null; userId: string }) {
+export function InvestmentDetailClient({ investment, holding, profile, userId }: { investment: Investment; holding: InvestmentHolding | null; profile: Profile; userId: string }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const userBalance = Number(profile?.wallet_balance || 0)
+
   const handleInvest = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     const num = parseFloat(amount)
+
     if (isNaN(num) || num < Number(investment.min_amount)) {
       setError(`Minimum investment is ${fmt(Number(investment.min_amount))}`)
       return
     }
+
+    if (num > userBalance) {
+      setError(`Insufficient wallet balance. Available cash: ${fmt(userBalance)}. Please deposit funds first.`)
+      toast('Insufficient Balance', 'You do not have enough funds in your digital wallet.', 'error')
+      return
+    }
+
     setLoading(true)
     const supabase = createClient()
 
+    // 1. Create holding
     const { error: insertError } = await supabase.from('investment_holdings').insert({
       user_id: userId,
       investment_id: investment.id,
@@ -41,6 +54,11 @@ export function InvestmentDetailClient({ investment, holding, userId }: { invest
       return
     }
 
+    // 2. Deduct from wallet balance
+    const newBal = Math.max(0, userBalance - num)
+    await supabase.from('profiles').update({ wallet_balance: newBal }).eq('id', userId)
+
+    // 3. Log transaction
     await supabase.from('transactions').insert({
       user_id: userId,
       type: 'investment',
@@ -50,6 +68,7 @@ export function InvestmentDetailClient({ investment, holding, userId }: { invest
     })
 
     setSuccess(true)
+    toast('Investment Confirmed!', `Allocated ${fmt(num)} from your digital wallet.`)
     setLoading(false)
     setTimeout(() => router.push('/investments'), 2000)
   }
@@ -109,7 +128,12 @@ export function InvestmentDetailClient({ investment, holding, userId }: { invest
 
         {/* Invest Form */}
         <div className="border border-border bg-card p-6">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Invest now</p>
+          <div className="flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Invest now</p>
+            <div className="flex items-center gap-1.5 font-mono text-xs text-primary font-bold">
+              <Wallet size={14} /> {fmt(userBalance)}
+            </div>
+          </div>
           <h2 className="mt-2 text-xl font-bold">Make an investment</h2>
 
           {success ? (
@@ -135,11 +159,15 @@ export function InvestmentDetailClient({ investment, holding, userId }: { invest
                   className="h-12 border border-border bg-background px-4 outline-none focus:border-primary"
                 />
               </label>
-              <button type="submit" disabled={loading} className="h-12 bg-primary text-sm font-bold text-primary-foreground disabled:opacity-50">
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-12 bg-primary text-sm font-bold text-primary-foreground transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+              >
                 {loading ? 'Processing...' : 'Confirm investment'}
               </button>
               <p className="text-center text-[10px] text-muted-foreground">
-                By investing, you agree to the terms and conditions of this investment product.
+                Funds will be deducted directly from your digital wallet available cash ({fmt(userBalance)}).
               </p>
             </form>
           )}

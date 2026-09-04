@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowDownRight, ArrowLeft, TrendingUp } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
+import { StockTradeWidget } from './trade-widget'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
 
@@ -12,6 +14,7 @@ export default async function StockDetailPage({ params }: { params: Promise<{ sy
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const { data: stock } = await supabase
     .from('stocks')
     .select('*')
@@ -46,9 +49,15 @@ export default async function StockDetailPage({ params }: { params: Promise<{ sy
         {/* Stock Info */}
         <div>
           <div className="flex items-center gap-4">
-            <div className="grid size-14 place-items-center bg-foreground font-mono text-lg text-background">
-              {stock.symbol.slice(0, 2)}
-            </div>
+            {stock.icon_url ? (
+              <div className="relative size-14 overflow-hidden rounded-full border border-border bg-background p-1">
+                <Image src={stock.icon_url} alt={stock.name} fill className="object-contain" />
+              </div>
+            ) : (
+              <div className="grid size-14 place-items-center bg-foreground font-mono text-lg text-background">
+                {stock.symbol.slice(0, 2)}
+              </div>
+            )}
             <div>
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{stock.symbol} · {stock.market}</p>
               <h1 className="mt-1 text-3xl font-bold tracking-tight">{stock.name}</h1>
@@ -109,6 +118,9 @@ export default async function StockDetailPage({ params }: { params: Promise<{ sy
 
         {/* Sidebar */}
         <div className="space-y-5">
+          {/* Stock Purchasing Trade Widget */}
+          <StockTradeWidget stock={stock} profile={profile} holding={holding} />
+
           {/* Position */}
           {holding && (
             <div className="border border-primary/30 bg-primary/5 p-5">

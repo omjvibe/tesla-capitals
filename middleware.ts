@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-const publicRoutes = ['/', '/learn', '/about']
+const publicRoutes = ['/', '/learn', '/about', '/terms', '/privacy', '/risk-disclosure']
 const authRoutes = ['/login', '/signup', '/forgot-password']
-const adminRoutes = ['/admin']
 const callbackRoutes = ['/auth/callback', '/auth/confirm']
 
 export async function middleware(request: NextRequest) {
@@ -33,7 +32,6 @@ export async function middleware(request: NextRequest) {
   // Admin login is separate
   if (pathname === '/admin/login') {
     if (user) {
-      // Check if admin
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -57,19 +55,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Fetch user profile for role & KYC checks
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_kyc_mandated, kyc_status')
+    .eq('id', user.id)
+    .single()
+
   // Admin routes require admin role
   if (pathname.startsWith('/admin')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
     if (profile?.role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
+  }
+
+  // KYC Mandate Enforcement for financial/trading actions
+  if (
+    profile?.is_kyc_mandated &&
+    profile?.kyc_status !== 'approved' &&
+    (pathname.startsWith('/investments') || pathname.startsWith('/stocks') || pathname.startsWith('/wallet'))
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/account'
+    url.searchParams.set('kyc_required', 'true')
+    return NextResponse.redirect(url)
   }
 
   return supabaseResponse

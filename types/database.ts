@@ -1,7 +1,7 @@
 // Tesla Capital — Database Types
 
 export type UserRole = 'user' | 'admin'
-export type VipTier = 'standard' | 'vip' | 'platinum'
+export type VipTier = 'standard' | 'bronze' | 'silver' | 'gold' | 'platinum'
 export type KycStatus = 'not_started' | 'pending' | 'approved' | 'rejected'
 export type InvestmentStatus = 'draft' | 'active' | 'archived'
 export type RiskLevel = 'low' | 'moderate' | 'high'
@@ -12,8 +12,9 @@ export type KycDocType = 'government_id' | 'passport' | 'proof_of_address'
 export type KycDocStatus = 'pending' | 'approved' | 'rejected'
 export type TicketStatus = 'open' | 'in_progress' | 'waiting' | 'resolved'
 export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent'
-export type TransactionType = 'deposit' | 'withdrawal' | 'investment' | 'order' | 'vip_payment' | 'reward'
+export type TransactionType = 'deposit' | 'withdrawal' | 'investment' | 'order' | 'vip_payment' | 'reward' | 'stock_buy' | 'stock_sell'
 export type ProductCategory = 'vehicles' | 'energy' | 'accessories'
+export type RequestStatus = 'pending' | 'approved' | 'rejected'
 
 export interface Profile {
   id: string
@@ -24,6 +25,13 @@ export interface Profile {
   vip_tier: VipTier
   vip_expires_at: string | null
   kyc_status: KycStatus
+  wallet_balance: number
+  btc_balance?: number
+  eth_balance?: number
+  usdt_balance?: number
+  realized_pnl?: number
+  unrealized_pnl?: number
+  is_kyc_mandated?: boolean
   created_at: string
   updated_at: string
 }
@@ -63,6 +71,7 @@ export interface Stock {
   change_percent: number
   market: string
   description: string | null
+  icon_url?: string | null
   is_published: boolean
   updated_at: string
 }
@@ -111,6 +120,7 @@ export interface Order {
   created_at: string
   updated_at: string
   product?: Product
+  user?: Profile
 }
 
 export interface VipTierData {
@@ -118,6 +128,7 @@ export interface VipTierData {
   name: string
   price: number
   benefits: string[]
+  discount_percent: number
   is_active: boolean
   created_at: string
 }
@@ -152,6 +163,7 @@ export interface KycDocument {
   reviewed_by: string | null
   created_at: string
   reviewed_at: string | null
+  user?: Profile
 }
 
 export interface SupportTicket {
@@ -223,5 +235,57 @@ export interface Transaction {
   amount: number
   description: string | null
   reference_id: string | null
+  created_at: string
+}
+
+export interface CryptoAddress {
+  id: string
+  currency: string
+  network: string
+  address: string
+  qr_code_url?: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface DepositRequest {
+  id: string
+  user_id: string
+  amount: number
+  currency: string
+  tx_hash: string | null
+  proof_url: string | null
+  status: RequestStatus
+  admin_notes: string | null
+  created_at: string
+  reviewed_at: string | null
+  user?: Profile
+}
+
+export interface WithdrawalRequest {
+  id: string
+  user_id: string
+  amount: number
+  currency: string
+  destination_address: string
+  status: RequestStatus
+  admin_notes: string | null
+  created_at: string
+  reviewed_at: string | null
+  user?: Profile
+}
+
+export interface ResendEmail {
+  id: string
+  resend_id?: string | null
+  direction: 'inbound' | 'outbound'
+  from_email: string
+  to_email: string
+  subject: string
+  body_text?: string | null
+  body_html?: string | null
+  status: string
+  metadata?: Record<string, unknown>
   created_at: string
 }

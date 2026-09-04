@@ -8,11 +8,8 @@ export default async function InvestmentDetailPage({ params }: { params: Promise
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: investment } = await supabase
-    .from('investments')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const { data: investment } = await supabase.from('investments').select('*').eq('id', id).single()
 
   if (!investment) notFound()
 
@@ -24,5 +21,5 @@ export default async function InvestmentDetailPage({ params }: { params: Promise
     .eq('status', 'active')
     .maybeSingle()
 
-  return <InvestmentDetailClient investment={investment} holding={holding} userId={user.id} />
+  return <InvestmentDetailClient investment={investment} holding={holding} profile={profile} userId={user.id} />
 }
