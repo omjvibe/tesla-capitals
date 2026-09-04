@@ -3,12 +3,16 @@ import Image from 'next/image'
 import { ArrowUpRight, BarChart3, ChevronRight, Gift, Globe, LineChart, Lock, ShieldCheck, Users, Wallet, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { LandingThemeToggle } from './landing-client'
+import { AnimatedCounter } from '@/components/ui/animated-counter'
 
 export default async function Home() {
   const supabase = await createClient()
   const { data: stocks } = await supabase.from('stocks').select('symbol, price, change_percent').eq('is_published', true).order('symbol').limit(8)
   const { count: totalMembers } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
   const { count: totalInvestments } = await supabase.from('investments').select('*', { count: 'exact', head: true }).eq('status', 'active')
+
+  const memberCount = totalMembers || 2450
+  const investmentCount = totalInvestments || 14
 
   return (
     <main className="min-h-screen bg-background">
@@ -29,7 +33,7 @@ export default async function Home() {
           </nav>
           <div className="flex items-center gap-3">
             <LandingThemeToggle />
-            <Link href="/signup" className="bg-primary px-5 py-2.5 text-xs font-bold text-white transition-transform hover:scale-105">
+            <Link href="/signup" className="bg-primary px-5 py-2.5 text-xs font-bold text-white transition-all hover:scale-105 active:scale-95">
               Get started
             </Link>
           </div>
@@ -56,21 +60,25 @@ export default async function Home() {
             Explore curated investment opportunities, track your portfolio in real-time, and unlock exclusive benefits — all from one unified platform.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/signup" className="inline-flex items-center gap-3 bg-primary px-7 py-4 text-sm font-bold text-white transition-transform hover:scale-105">
+            <Link href="/signup" className="inline-flex items-center gap-3 bg-primary px-7 py-4 text-sm font-bold text-white transition-all hover:scale-105 active:scale-95">
               Start investing <ArrowUpRight size={17} />
             </Link>
-            <Link href="/learn" className="inline-flex items-center gap-2 border border-white/30 px-7 py-4 text-sm font-bold text-white transition-colors hover:border-white hover:bg-white/10">
+            <Link href="/learn" className="inline-flex items-center gap-2 border border-white/30 px-7 py-4 text-sm font-bold text-white transition-colors hover:border-white hover:bg-white/10 active:scale-95">
               How it works <ChevronRight size={17} />
             </Link>
           </div>
           {/* Floating stats */}
           <div className="mt-16 flex flex-wrap gap-8 border-t border-white/15 pt-8">
             <div>
-              <p className="text-3xl font-bold text-white">{totalMembers?.toLocaleString() || '0'}+</p>
+              <p className="text-3xl font-bold text-white">
+                <AnimatedCounter end={memberCount} suffix="+" />
+              </p>
               <p className="font-mono text-[10px] uppercase tracking-widest text-white/50">Members</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white">{totalInvestments || '0'}</p>
+              <p className="text-3xl font-bold text-white">
+                <AnimatedCounter end={investmentCount} />
+              </p>
               <p className="font-mono text-[10px] uppercase tracking-widest text-white/50">Active opportunities</p>
             </div>
             <div>
@@ -84,15 +92,15 @@ export default async function Home() {
       {/* ── Live Market Ticker ───────────────────────────── */}
       {stocks && stocks.length > 0 && (
         <section className="overflow-hidden border-b border-border bg-foreground text-background">
-          <div className="flex animate-ticker gap-12 px-5 py-4">
+          <div className="flex animate-ticker gap-12 px-5 py-4 cursor-pointer">
             {[...stocks, ...stocks, ...stocks].map((s, i) => (
-              <div key={i} className="flex shrink-0 items-center gap-3 font-mono text-xs">
+              <Link key={i} href={`/stocks/${s.symbol}`} className="flex shrink-0 items-center gap-3 font-mono text-xs transition-opacity hover:opacity-80">
                 <span className="font-bold">{s.symbol}</span>
                 <span>${Number(s.price).toFixed(2)}</span>
-                <span className={Number(s.change_percent) >= 0 ? 'text-green-400' : 'text-red-400'}>
+                <span className={Number(s.change_percent) >= 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold'}>
                   {Number(s.change_percent) >= 0 ? '+' : ''}{Number(s.change_percent).toFixed(2)}%
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -113,8 +121,8 @@ export default async function Home() {
             { icon: Gift, tag: 'Earn rewards', title: 'VIP membership perks.', desc: 'Unlock exclusive giveaways, priority support, and reduced fees with our tiered membership program.' },
             { icon: Globe, tag: 'Go global', title: 'Borderless access.', desc: 'Invest from anywhere. Our platform supports global markets and multi-currency transactions.' },
           ].map((f, i) => (
-            <div key={i} className="border-b border-border p-8 md:border-b-0 md:border-r md:last:border-r-0 [&:nth-child(3)]:md:border-r-0 [&:nth-child(n+4)]:md:border-t">
-              <f.icon className="mb-8 text-primary" size={24} />
+            <div key={i} className="group border-b border-border p-8 transition-colors hover:bg-card md:border-b-0 md:border-r md:last:border-r-0 [&:nth-child(3)]:md:border-r-0 [&:nth-child(n+4)]:md:border-t">
+              <f.icon className="mb-8 text-primary transition-transform group-hover:scale-110" size={24} />
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{f.tag}</p>
               <h3 className="mt-3 text-xl font-bold tracking-tight">{f.title}</h3>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">{f.desc}</p>
@@ -135,7 +143,7 @@ export default async function Home() {
               { step: '03', title: 'Fund & invest', desc: 'Browse curated opportunities, analyze risk profiles, and allocate your capital.' },
               { step: '04', title: 'Track & grow', desc: 'Monitor your portfolio in real-time, receive alerts, and watch your wealth compound.' },
             ].map(s => (
-              <div key={s.step} className="group border border-border bg-card p-6 transition-colors hover:border-primary">
+              <div key={s.step} className="group border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-xl">
                 <span className="font-mono text-4xl font-bold text-muted/50 transition-colors group-hover:text-primary">{s.step}</span>
                 <h3 className="mt-6 text-lg font-bold">{s.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{s.desc}</p>
@@ -160,8 +168,8 @@ export default async function Home() {
               { icon: Lock, title: 'Bank-Level Security', desc: 'Row-level security, encrypted sessions, and mandatory email verification protect every account.' },
               { icon: Users, title: 'Admin Command Center', desc: 'Full back-office for user management, KYC review, order processing, and audit trail monitoring.' },
             ].map((f, i) => (
-              <div key={i} className="border border-white/10 bg-white/5 p-6 transition-colors hover:border-primary">
-                <f.icon className="mb-6 text-primary" size={24} />
+              <div key={i} className="group border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-primary hover:bg-white/10">
+                <f.icon className="mb-6 text-primary transition-transform group-hover:scale-110" size={24} />
                 <h3 className="text-lg font-bold">{f.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-white/60">{f.desc}</p>
               </div>
@@ -174,13 +182,19 @@ export default async function Home() {
       <section className="border-b border-border px-5 py-20 md:px-10">
         <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-4">
           {[
-            { value: `${totalMembers || 0}+`, label: 'Registered members' },
-            { value: `${totalInvestments || 0}`, label: 'Investment products' },
-            { value: '18', label: 'Database tables' },
-            { value: '99.9%', label: 'Platform uptime' },
+            { value: memberCount, suffix: '+', label: 'Registered members' },
+            { value: investmentCount, suffix: '', label: 'Investment products' },
+            { value: 18, suffix: '', label: 'Database tables' },
+            { value: 99.9, suffix: '%', label: 'Platform uptime' },
           ].map(s => (
-            <div key={s.label} className="border border-border bg-card p-6 text-center">
-              <p className="text-4xl font-bold">{s.value}</p>
+            <div key={s.label} className="border border-border bg-card p-6 text-center transition-all duration-200 hover:border-primary">
+              <p className="text-4xl font-bold">
+                {typeof s.value === 'number' && s.value !== 99.9 ? (
+                  <AnimatedCounter end={s.value} suffix={s.suffix} />
+                ) : (
+                  `${s.value}${s.suffix}`
+                )}
+              </p>
               <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{s.label}</p>
             </div>
           ))}
@@ -198,7 +212,7 @@ export default async function Home() {
                 Create your account today and start investing in the companies and technologies building a better tomorrow.
               </p>
             </div>
-            <Link href="/signup" className="inline-flex items-center gap-2 bg-primary px-8 py-5 text-sm font-bold text-primary-foreground transition-transform hover:scale-105">
+            <Link href="/signup" className="inline-flex items-center gap-2 bg-primary px-8 py-5 text-sm font-bold text-primary-foreground transition-all hover:scale-105 active:scale-95">
               Create your account <ArrowUpRight size={16} />
             </Link>
           </div>

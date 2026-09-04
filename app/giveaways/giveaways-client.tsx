@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Gift, Clock } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import type { Giveaway } from '@/types'
 
 function useCountdown(endDate: string) {
@@ -33,8 +34,9 @@ interface Props {
 export function GiveawaysClient({ giveaways, enteredIds, userId }: Props) {
   const [entered, setEntered] = useState<Set<string>>(enteredIds)
   const [loading, setLoading] = useState<string | null>(null)
+  const { toast } = useToast()
 
-  const handleEnter = async (giveawayId: string) => {
+  const handleEnter = async (giveawayId: string, title: string) => {
     setLoading(giveawayId)
     const supabase = createClient()
     const { error } = await supabase.from('giveaway_entries').insert({
@@ -43,6 +45,9 @@ export function GiveawaysClient({ giveaways, enteredIds, userId }: Props) {
     })
     if (!error) {
       setEntered(prev => new Set([...prev, giveawayId]))
+      toast('Giveaway Entry Confirmed!', `You have successfully entered "${title}".`)
+    } else {
+      toast('Entry Failed', error.message, 'error')
     }
     setLoading(null)
   }
@@ -62,7 +67,7 @@ export function GiveawaysClient({ giveaways, enteredIds, userId }: Props) {
             const isEntered = entered.has(g.id)
             const isActive = g.status === 'active' && !countdown.expired
             return (
-              <div key={g.id} className="border border-border bg-card p-6">
+              <div key={g.id} className="border border-border bg-card p-6 transition-all duration-200 hover:border-primary">
                 <div className="flex items-start justify-between">
                   <div className="grid size-10 place-items-center bg-primary/10 text-primary"><Gift size={20} /></div>
                   <span className={`px-2 py-1 text-[10px] font-bold uppercase ${isActive ? 'bg-green-500/10 text-green-600' : 'bg-muted text-muted-foreground'}`}>
@@ -87,13 +92,13 @@ export function GiveawaysClient({ giveaways, enteredIds, userId }: Props) {
                     </div>
                     {isEntered ? (
                       <div className="mt-6 border border-primary/30 bg-primary/5 p-3 text-center text-sm font-bold text-primary">
-                        You have entered this giveaway
+                        ✓ You have entered this giveaway
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleEnter(g.id)}
+                        onClick={() => handleEnter(g.id, g.title)}
                         disabled={loading === g.id}
-                        className="mt-6 h-12 w-full bg-primary text-sm font-bold text-primary-foreground disabled:opacity-50"
+                        className="mt-6 h-12 w-full bg-primary text-sm font-bold text-primary-foreground transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                       >
                         {loading === g.id ? 'Entering...' : 'Enter giveaway'}
                       </button>

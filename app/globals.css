@@ -138,6 +138,10 @@
   animation: ticker-scroll 25s linear infinite;
 }
 
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
 /* ── Fade-in-up animation for sections ───────────────── */
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(30px); }
@@ -146,6 +150,16 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.8s ease-out forwards;
+}
+
+/* ── Toast animation ─────────────────────────────────── */
+@keyframes toast-slide-in {
+  from { transform: translateY(100%) scale(0.9); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.animate-toast {
+  animation: toast-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ── Hero video overlay ──────────────────────────────── */
@@ -159,4 +173,31 @@
     rgba(0, 0, 0, 0.4) 50%,
     rgba(0, 0, 0, 0.8) 100%
   );
+}
+
+/* ── Hide Google Translate native elements ───────────── */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-te-spinner-pos {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-te-gadget {
+  font-size: 0 !important;
+}
+
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  box-shadow: none !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
 }

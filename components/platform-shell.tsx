@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, WalletCards, X } from 'lucide-react'
 import { useAuth, useTheme } from '@/lib/auth/provider'
+import { GoogleTranslate } from '@/components/google-translate'
 
 const userNav = [
   { href: '/dashboard', label: 'Overview', icon: Home },
@@ -46,7 +47,7 @@ export function ThemeToggle() {
       aria-label="Toggle theme"
       onClick={cycle}
       title={`Theme: ${theme}`}
-      className="grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+      className="grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary active:scale-95"
     >
       {theme === 'dark' ? <Moon size={17} /> : theme === 'light' ? <Sun size={17} /> : <Monitor size={17} />}
     </button>
@@ -102,9 +103,9 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 border-l-2 px-3 py-3 text-sm transition-colors ${
+              className={`flex items-center gap-3 border-l-2 px-3 py-3 text-sm transition-all duration-200 ${
                 pathname === href
-                  ? 'border-primary bg-primary text-primary-foreground'
+                  ? 'border-primary bg-primary text-primary-foreground font-bold shadow-md'
                   : 'border-transparent text-muted-foreground hover:border-primary hover:bg-muted hover:text-foreground'
               }`}
             >
@@ -125,7 +126,7 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
               {admin ? 'Administrator' : profile?.vip_tier === 'platinum' ? 'Platinum member' : profile?.vip_tier === 'vip' ? 'VIP member' : 'Standard member'}
             </p>
           </div>
-          <button onClick={handleSignOut} title="Sign out" className="text-muted-foreground hover:text-primary">
+          <button onClick={handleSignOut} title="Sign out" className="text-muted-foreground transition-colors hover:text-primary active:scale-90">
             <LogOut size={15} />
           </button>
         </div>
@@ -143,13 +144,14 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <GoogleTranslate />
             {!admin && (
-              <Link href="/notifications" className="relative grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+              <Link href="/notifications" className="relative grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary active:scale-95">
                 <Bell size={17} />
               </Link>
             )}
             <ThemeToggle />
-            <div className="size-2 bg-primary" />
+            <div className="size-2 bg-primary animate-pulse" title="System Online" />
           </div>
         </header>
         <main className="mx-auto max-w-7xl p-4 pb-24 md:p-8 lg:pb-10">
@@ -163,8 +165,8 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] ${
-              pathname === href ? 'text-primary' : 'text-muted-foreground'
+            className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] transition-colors ${
+              pathname === href ? 'text-primary font-bold' : 'text-muted-foreground'
             }`}
           >
             <Icon size={18} />
