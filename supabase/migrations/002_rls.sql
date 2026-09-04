@@ -301,6 +301,10 @@ CREATE POLICY "Users can view own transactions"
   ON transactions FOR SELECT
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can create own transactions"
+  ON transactions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "Admin can manage all transactions"
   ON transactions FOR ALL
   USING (is_admin());

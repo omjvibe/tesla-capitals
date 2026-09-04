@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 2. INVESTMENTS (admin-created products)
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS investments (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE investments ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 3. INVESTMENT HOLDINGS (user positions)
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS investment_holdings (
   invested_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE investment_holdings ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 4. STOCKS (admin-managed market data)
@@ -65,6 +68,7 @@ CREATE TABLE IF NOT EXISTS stocks (
   is_published BOOLEAN DEFAULT true,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE stocks ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 5. WATCHLIST
@@ -76,6 +80,7 @@ CREATE TABLE IF NOT EXISTS watchlist (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, stock_id)
 );
+ALTER TABLE watchlist ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 6. PORTFOLIO HOLDINGS (stock positions)
@@ -89,6 +94,7 @@ CREATE TABLE IF NOT EXISTS portfolio_holdings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE portfolio_holdings ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 7. PRODUCTS / INVENTORY
@@ -106,6 +112,7 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 8. ORDERS
@@ -121,6 +128,7 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 9. VIP TIERS
@@ -133,6 +141,7 @@ CREATE TABLE IF NOT EXISTS vip_tiers (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE vip_tiers ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 10. GIVEAWAYS
@@ -148,6 +157,7 @@ CREATE TABLE IF NOT EXISTS giveaways (
   winner_id UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE giveaways ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 11. GIVEAWAY ENTRIES
@@ -159,6 +169,7 @@ CREATE TABLE IF NOT EXISTS giveaway_entries (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(giveaway_id, user_id)
 );
+ALTER TABLE giveaway_entries ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 12. KYC DOCUMENTS
@@ -174,6 +185,7 @@ CREATE TABLE IF NOT EXISTS kyc_documents (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   reviewed_at TIMESTAMPTZ
 );
+ALTER TABLE kyc_documents ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 13. SUPPORT TICKETS
@@ -190,6 +202,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 14. SUPPORT MESSAGES
@@ -202,6 +215,7 @@ CREATE TABLE IF NOT EXISTS support_messages (
   is_internal BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 15. NOTIFICATIONS
@@ -216,6 +230,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   link TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 16. ADMIN ACTIVITY LOG
@@ -229,6 +244,7 @@ CREATE TABLE IF NOT EXISTS admin_activity_logs (
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE admin_activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 17. ARTICLES (Learn page)
@@ -247,6 +263,7 @@ CREATE TABLE IF NOT EXISTS articles (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- 18. TRANSACTIONS (unified financial ledger)
@@ -260,6 +277,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   reference_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
 -- ──────────────────────────────────────────────────────────────
 -- INDEXES

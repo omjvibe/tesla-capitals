@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Menu, Moon, Package, Settings, ShieldCheck, Sun, UserRound, WalletCards, X } from 'lucide-react'
-import { useAuth } from '@/lib/auth/provider'
+import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, WalletCards, X } from 'lucide-react'
+import { useAuth, useTheme } from '@/lib/auth/provider'
 
 const userNav = [
   { href: '/dashboard', label: 'Overview', icon: Home },
@@ -34,23 +35,29 @@ const adminNav = [
 ]
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const cycle = () => {
+    if (theme === 'light') setTheme('dark')
+    else if (theme === 'dark') setTheme('system')
+    else setTheme('light')
+  }
   return (
     <button
       aria-label="Toggle theme"
-      onClick={() => { document.documentElement.classList.toggle('dark'); setDark(!dark) }}
-      className="grid size-10 place-items-center border border-border text-muted-foreground hover:border-primary hover:text-primary"
+      onClick={cycle}
+      title={`Theme: ${theme}`}
+      className="grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
     >
-      {dark ? <Sun size={17} /> : <Moon size={17} />}
+      {theme === 'dark' ? <Moon size={17} /> : theme === 'light' ? <Sun size={17} /> : <Monitor size={17} />}
     </button>
   )
 }
 
 export function Brand({ dark = false }: { dark?: boolean }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 font-mono text-sm font-bold tracking-[0.22em] ${dark ? 'text-white' : 'text-foreground'}`}>
-      <span className="grid size-7 place-items-center bg-primary text-primary-foreground">T</span>
-      TESLA CAPITAL
+    <Link href="/" className={`flex items-center gap-2 text-sm font-bold tracking-[0.12em] ${dark ? 'text-white' : 'text-foreground'}`}>
+      <Image src="/tesla-seeklogo.png" alt="Tesla Capital" width={80} height={16} className={`h-4 w-auto ${dark ? 'brightness-0 invert' : 'dark:brightness-0 dark:invert'}`} />
+      <span className="font-mono tracking-[0.22em]">CAPITAL</span>
     </Link>
   )
 }
@@ -137,7 +144,7 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
           </div>
           <div className="flex items-center gap-3">
             {!admin && (
-              <Link href="/notifications" className="relative grid size-10 place-items-center border border-border text-muted-foreground hover:border-primary hover:text-primary">
+              <Link href="/notifications" className="relative grid size-10 place-items-center border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary">
                 <Bell size={17} />
               </Link>
             )}
