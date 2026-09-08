@@ -1,45 +1,27 @@
-# Supabase Auth Custom Email Templates — Tesla Capitals
+# Supabase Auth Email Templates — Tesla Capital
 
-This directory contains production-ready, ultra-luxury dark mode HTML email templates for all Supabase Authentication events.
+These email templates have been redesigned from the ground up to **100% match Tesla Capital's exact site design language**:
 
-## Templates Included
+- **Color System**: Pure dark background (`#0a0a0a`), deep dark cards (`#141414`), sharp muted borders (`#1f1f1f`), and signature Tesla Red (`#e53935`).
+- **Typography & Geometry**: Sharp 0px border-radius, monospaced uppercase category tags (`font-family: monospace; letter-spacing: 2.5px; color: #e53935;`), crisp white headers (`#ffffff`), and monospace metadata footers.
+- **Brand Header**: Matches the site header branding (`TESLA CAPITAL` with monospaced letter spacing).
+- **CTA Buttons**: Solid `#e53935` red rectangular action buttons with uppercase monospaced text (`CONFIRM EMAIL ADDRESS ->`).
 
-1. **Confirm Signup / Email Verification**: [`confirm_signup.html`](./confirm_signup.html)
+---
+
+## File List
+
+1. **Confirm Email / Registration**: [`confirm_signup.html`](./confirm_signup.html)
 2. **Reset Password / Password Recovery**: [`reset_password.html`](./reset_password.html)
-3. **Magic Link / OTP Sign-In**: [`magic_link.html`](./magic_link.html)
+3. **Magic Link / One-Time Access**: [`magic_link.html`](./magic_link.html)
 4. **Change Email Verification**: [`change_email.html`](./change_email.html)
-5. **Invite User**: [`invite_user.html`](./invite_user.html)
+5. **Account Invitation**: [`invite_user.html`](./invite_user.html)
 
 ---
 
-## How to Install in Supabase Dashboard
+## How to Apply in Supabase
 
-1. Log into your [Supabase Dashboard](https://supabase.com/dashboard).
-2. Select your Tesla Capitals project.
-3. Navigate to **Authentication** &rarr; **Email Templates** in the sidebar.
-4. For each email template tab:
-   - **Confirm signup**: Open [`confirm_signup.html`](./confirm_signup.html), copy all HTML content, paste into the Body editor in Supabase, and click **Save**.
-   - **Reset password**: Open [`reset_password.html`](./reset_password.html), copy all HTML content, paste into Body editor, and click **Save**.
-   - **Magic link**: Open [`magic_link.html`](./magic_link.html), copy all HTML content, paste into Body editor, and click **Save**.
-   - **Change email address**: Open [`change_email.html`](./change_email.html), copy all HTML content, paste into Body editor, and click **Save**.
-   - **User invite**: Open [`invite_user.html`](./invite_user.html), copy all HTML content, paste into Body editor, and click **Save**.
-
----
-
-## Customizing Logo / Image URL (Optional)
-
-If you wish to display an image logo instead of the stylized text badge `TESLA.CAPITALS`:
-1. Host your logo image publicly (e.g. `https://teslacapitals.app/tesla-seeklogo.png`).
-2. Replace the text container in the `<td align="center">` section of the HTML template with:
-
-```html
-<img src="https://teslacapitals.app/tesla-seeklogo.png" alt="Tesla Capitals Logo" width="160" style="display: block; border: 0; outline: none; text-decoration: none;" />
-```
-
----
-
-## Email Client Compatibility
-- Outlook 2016 / 2019 / 365 (Windows & Mac)
-- Apple Mail (iOS & macOS)
-- Gmail (Desktop, Android & iOS)
-- Yahoo Mail & Webmail
+1. Open your [Supabase Dashboard](https://supabase.com/dashboard).
+2. Navigate to **Authentication** &rarr; **Email Templates**.
+3. Copy the HTML content from each file in `supabase/templates/` and paste into the corresponding email template **Body** field.
+4. Click **Save**.

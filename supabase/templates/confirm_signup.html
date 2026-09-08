@@ -3,76 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm Your Email - Tesla Capitals</title>
+  <title>Confirm Your Email - Tesla Capital</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #090a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #e2e8f0;">
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #090a0f; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #fafafa;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0a0a0a; padding: 40px 10px;">
     <tr>
       <td align="center">
-        <!-- Main Email Container -->
-        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #121520; border: 1px solid #232738; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+        <!-- Main Email Container (Sharp Minimalist Card matching site design) -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 540px; background-color: #141414; border: 1px solid #1f1f1f;">
           
-          <!-- Top Accent Bar -->
+          <!-- Top Tesla Red Bar -->
           <tr>
-            <td style="height: 4px; background: linear-gradient(90deg, #e82127 0%, #ff5257 50%, #e82127 100%);"></td>
+            <td style="height: 3px; background-color: #e53935;"></td>
           </tr>
 
-          <!-- Header / Logo Area -->
+          <!-- Header / Brand Section -->
           <tr>
-            <td align="center" style="padding: 36px 40px 24px 40px;">
-              <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+            <td style="padding: 32px 36px 20px 36px; border-bottom: 1px solid #1f1f1f;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td align="center">
-                    <!-- Brand Icon & Title -->
-                    <div style="display: inline-block; background-color: rgba(232, 33, 39, 0.12); border: 1px solid rgba(232, 33, 39, 0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;">
-                      <span style="font-size: 22px; font-weight: 900; letter-spacing: 4px; color: #ffffff; text-transform: uppercase;">
-                        TESLA<span style="color: #e82127;">.</span>CAPITALS
-                      </span>
+                  <td align="left">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <!-- Official Logo & Text Brand -->
+                      <a href="{{ .SiteURL }}" target="_blank" style="text-decoration: none; color: #ffffff;">
+                        <span style="font-size: 16px; font-weight: 800; letter-spacing: 3px; color: #ffffff; text-transform: uppercase;">
+                          TESLA <span style="font-family: monospace; letter-spacing: 4px; color: #8a8a8a; font-weight: 400;">CAPITAL</span>
+                        </span>
+                      </a>
                     </div>
+                  </td>
+                  <td align="right">
+                    <span style="font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #e53935; border: 1px solid rgba(229, 57, 53, 0.3); padding: 4px 8px;">
+                      VERIFICATION
+                    </span>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Main Card Content -->
+          <!-- Main Content -->
           <tr>
-            <td style="padding: 0 40px 36px 40px; text-align: left;">
-              <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #ffffff; text-align: center; letter-spacing: -0.5px;">
-                Verify Your Account
+            <td style="padding: 36px 36px; text-align: left;">
+              <p style="font-family: monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 2.5px; color: #e53935; margin: 0 0 10px 0; font-weight: 700;">
+                MEMBER REGISTRATION
+              </p>
+              
+              <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; line-height: 1.2;">
+                Confirm your email.
               </h1>
               
-              <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #94a3b8; text-align: center;">
-                Welcome to <strong style="color: #ffffff;">Tesla Capitals</strong>. Please confirm your email address (<span style="color: #e82127; font-weight: 600;">{{ .Email }}</span>) to activate your institutional investment account and access global financial markets.
+              <p style="margin: 0 0 28px 0; font-size: 14px; line-height: 1.6; color: #8a8a8a;">
+                Welcome to <strong style="color: #ffffff;">Tesla Capital</strong>. Confirm your email address (<span style="color: #ffffff; font-family: monospace;">{{ .Email }}</span>) to authorize your capital account and access the institutional platform.
               </p>
 
-              <!-- CTA Button Block -->
-              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 30px 0;">
+              <!-- CTA Button (Sharp 0px border radius matching site red buttons) -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0;">
                 <tr>
-                  <td align="center">
-                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #e82127 0%, #b81419 100%); color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; padding: 16px 36px; border-radius: 10px; box-shadow: 0 10px 25px rgba(232, 33, 39, 0.4); letter-spacing: 0.5px;">
-                      Confirm Email Address &rarr;
+                  <td align="left">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; background-color: #e53935; color: #ffffff; font-family: monospace; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-decoration: none; padding: 14px 28px; border: 1px solid #e53935;">
+                      CONFIRM EMAIL ADDRESS &rarr;
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <!-- Alternative OTP Box -->
+              <!-- Monospaced Code Box (If applicable) -->
               {{ if .Token }}
-              <div style="background-color: #0b0d14; border: 1px dashed #2d3348; border-radius: 10px; padding: 18px; margin-top: 24px; text-align: center;">
-                <p style="margin: 0 0 8px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600;">
-                  Or use verification code
+              <div style="margin-top: 24px; border: 1px solid #1f1f1f; background-color: #0a0a0a; padding: 16px; text-align: left;">
+                <p style="margin: 0 0 8px 0; font-family: monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #8a8a8a;">
+                  SECURITY TOKEN / OTP CODE
                 </p>
-                <div style="font-family: 'Courier New', Courier, monospace; font-size: 26px; font-weight: 800; letter-spacing: 8px; color: #ffffff; background-color: #161a29; padding: 10px 16px; border-radius: 6px; display: inline-block; border: 1px solid #282e44;">
+                <div style="font-family: monospace; font-size: 22px; font-weight: 700; letter-spacing: 6px; color: #ffffff;">
                   {{ .Token }}
                 </div>
               </div>
               {{ end }}
 
               <!-- Security Notice -->
-              <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #1e2333;">
-                <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #64748b; text-align: center;">
-                  If you did not initiate this request, you can safely ignore this email. This link will expire in 24 hours.
+              <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #1f1f1f;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #555555; font-family: monospace;">
+                  SECURE SYSTEM DISPATCH // IF YOU DID NOT INITIATE THIS REQUEST, DISREGARD THIS NOTICE. LINK EXPIRES IN 24 HOURS.
                 </p>
               </div>
             </td>
@@ -80,13 +91,17 @@
 
           <!-- Footer -->
           <tr>
-            <td style="background-color: #0c0e16; padding: 24px 40px; border-top: 1px solid #1a1e2d; text-align: center;">
-              <p style="margin: 0 0 10px 0; font-size: 12px; color: #475569;">
-                &copy; 2026 Tesla Capitals Management LLC. All rights reserved.
-              </p>
-              <p style="margin: 0; font-size: 12px; color: #334155;">
-                Secure Institutional Trading & Portfolio Management
-              </p>
+            <td style="background-color: #0a0a0a; padding: 20px 36px; border-top: 1px solid #1f1f1f;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="left" style="font-family: monospace; font-size: 10px; color: #555555; letter-spacing: 1px;">
+                    TESLA CAPITAL &copy; 2026 / ALL RIGHTS RESERVED
+                  </td>
+                  <td align="right" style="font-family: monospace; font-size: 10px; color: #555555; letter-spacing: 1px;">
+                    SECURE ACCESS
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
