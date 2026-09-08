@@ -262,7 +262,6 @@ export default async function Home() {
           </div>
           <div className="mt-10 flex flex-col justify-between gap-3 border-t border-border pt-6 text-[10px] text-muted-foreground sm:flex-row">
             <span>© {new Date().getFullYear()} Tesla Capital. All rights reserved.</span>
-            <span>Built with Next.js & Supabase</span>
           </div>
         </div>
       </footer>
