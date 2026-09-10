@@ -10,8 +10,27 @@ export default async function AdminEmailsPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/dashboard')
 
-  const { data: emailLogs } = await supabase.from('email_logs').select('*').order('created_at', { ascending: false })
-  const { data: profiles } = await supabase.from('profiles').select('email, full_name').order('created_at', { ascending: false })
+  // Try fetching from resend_emails first, fallback to email_logs
+  let emails = []
+  const { data: resendData, error: resendErr } = await supabase
+    .from('resend_emails')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-  return <AdminEmailsClient initialLogs={emailLogs || []} users={profiles || []} />
+  if (!resendErr && resendData && resendData.length > 0) {
+    emails = resendData
+  } else {
+    const { data: logData } = await supabase
+      .from('email_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+    emails = logData || []
+  }
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role, vip_tier, kyc_status, wallet_balance')
+    .order('created_at', { ascending: false })
+
+  return <AdminEmailsClient initialEmails={emails} users={profiles || []} />
 }

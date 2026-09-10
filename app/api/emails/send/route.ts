@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-    const { to, subject, html, template } = await req.json()
+    const { to, subject, html, template, inReplyTo } = await req.json()
 
     if (!to || !subject || !html) {
       return NextResponse.json({ error: 'Missing required fields (to, subject, html)' }, { status: 400 })
@@ -31,6 +31,7 @@ export async function POST(req: Request) {
           to,
           subject,
           html,
+          headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
         }),
       })
 
@@ -41,13 +42,30 @@ export async function POST(req: Request) {
       resendId = data.id
     }
 
-    // Log email to database
+    // Log to resend_emails with outbound direction
+    await supabase.from('resend_emails').insert({
+      direction: 'outbound',
+      from_email: 'support@teslacapitals.app',
+      to_email: to,
+      subject,
+      body_html: html,
+      status: resendApiKey ? 'sent' : 'simulated',
+      resend_id: resendId,
+      in_reply_to: inReplyTo || null,
+      metadata: { template: template || 'custom_support' },
+    })
+
+    // Fallback sync to email_logs
     await supabase.from('email_logs').insert({
+      direction: 'outbound',
+      from_email: 'support@teslacapitals.app',
+      to_email: to,
       recipient: to,
       subject,
       template: template || 'custom_support',
       status: resendApiKey ? 'sent' : 'simulated',
       resend_id: resendId,
+      in_reply_to: inReplyTo || null,
     })
 
     return NextResponse.json({

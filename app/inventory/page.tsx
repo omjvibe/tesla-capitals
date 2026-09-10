@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowUpRight, Package } from 'lucide-react'
+import { ArrowUpRight, Gavel, Package, Sparkles } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
@@ -29,6 +29,26 @@ export default async function InventoryPage() {
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-primary">Member benefits</p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">Inventory & Store</h1>
         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">Explore vehicles, energy products, and exclusive accessories.</p>
+      </div>
+
+      {/* Featured Live Auction Callout Banner */}
+      <div className="mt-6 border border-primary/40 bg-gradient-to-r from-primary/10 via-card to-card p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-primary animate-ping" />
+            <p className="font-mono text-[10px] uppercase tracking-widest text-primary font-bold">Now Live &bull; Tesla Premier Vault</p>
+          </div>
+          <h2 className="mt-1 text-xl font-bold text-foreground">Rare Vehicle & Collector Auctions</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Place balance-backed bids on Cybertruck Cyberbeast Foundation Series, Model S Plaid Track Edition, and Historic Roadsters.
+          </p>
+        </div>
+        <Link
+          href="/auctions"
+          className="inline-flex items-center gap-2 bg-primary px-5 py-3 font-mono text-xs font-bold uppercase text-primary-foreground hover:brightness-110 active:scale-95 shrink-0"
+        >
+          <Gavel size={15} /> Enter Auction Arena
+        </Link>
       </div>
 
       {(products && products.length > 0) ? (

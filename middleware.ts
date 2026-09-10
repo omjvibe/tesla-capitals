@@ -75,7 +75,7 @@ export async function middleware(request: NextRequest) {
   if (
     profile?.is_kyc_mandated &&
     profile?.kyc_status !== 'approved' &&
-    (pathname.startsWith('/investments') || pathname.startsWith('/stocks') || pathname.startsWith('/wallet'))
+    (pathname.startsWith('/investments') || pathname.startsWith('/stocks') || pathname.startsWith('/wallet') || pathname.startsWith('/auctions'))
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/account'

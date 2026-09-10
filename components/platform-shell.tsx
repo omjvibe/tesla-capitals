@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
+import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gavel, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
 import { useAuth, useTheme } from '@/lib/auth/provider'
 import { GoogleTranslate } from '@/components/google-translate'
 
@@ -15,6 +15,7 @@ const userNav = [
   { href: '/stocks', label: 'Stocks', icon: BarChart3 },
   { href: '/portfolio', label: 'Portfolio', icon: WalletCards },
   { href: '/inventory', label: 'Inventory', icon: Package },
+  { href: '/auctions', label: 'Auctions', icon: Gavel },
   { href: '/vip', label: 'VIP Membership', icon: ShieldCheck },
   { href: '/giveaways', label: 'Giveaways', icon: Gift },
   { href: '/orders', label: 'Orders', icon: Package },
@@ -29,6 +30,7 @@ const adminNav = [
   { href: '/admin/investments', label: 'Investments', icon: BriefcaseBusiness },
   { href: '/admin/stocks', label: 'Stocks', icon: BarChart3 },
   { href: '/admin/inventory', label: 'Inventory', icon: Package },
+  { href: '/admin/auctions', label: 'Auction Manager', icon: Gavel },
   { href: '/admin/orders', label: 'Orders', icon: Package },
   { href: '/admin/vip', label: 'VIP Tiers', icon: ShieldCheck },
   { href: '/admin/giveaways', label: 'Giveaways', icon: Gift },

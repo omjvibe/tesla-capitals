@@ -282,10 +282,58 @@ export interface ResendEmail {
   direction: 'inbound' | 'outbound'
   from_email: string
   to_email: string
+  recipient?: string
   subject: string
   body_text?: string | null
   body_html?: string | null
+  template?: string | null
   status: string
   metadata?: Record<string, unknown>
+  in_reply_to?: string | null
+  thread_id?: string | null
+  is_read?: boolean
+  attachments?: any[]
   created_at: string
 }
+
+export type AuctionStatus = 'draft' | 'upcoming' | 'live' | 'ended' | 'cancelled'
+export type AuctionBidStatus = 'active' | 'outbid' | 'won' | 'retracted'
+
+export interface Auction {
+  id: string
+  product_id?: string | null
+  title: string
+  subtitle?: string | null
+  description?: string | null
+  image_url?: string | null
+  gallery_urls?: string[]
+  starting_price: number
+  reserve_price: number
+  current_bid: number
+  min_bid_increment: number
+  buy_now_price?: number | null
+  starts_at: string
+  ends_at: string
+  status: AuctionStatus
+  winner_id?: string | null
+  winning_bid?: number | null
+  total_bids: number
+  anti_snipe_seconds: number
+  specs?: Record<string, string>
+  created_at: string
+  updated_at: string
+  product?: Product
+  winner?: Profile
+  bids?: AuctionBid[]
+}
+
+export interface AuctionBid {
+  id: string
+  auction_id: string
+  user_id: string
+  amount: number
+  status: AuctionBidStatus
+  created_at: string
+  user?: Profile
+}
+

@@ -11,8 +11,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS%20v4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-22%20Tables%20%2B%20RLS-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![Resend](https://img.shields.io/badge/Resend-Email%20Engine-black?style=for-the-badge&logo=resend)](https://resend.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-24%20Tables%20%2B%20RLS-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Resend](https://img.shields.io/badge/Resend-Inbound%20%26%20Outbound-black?style=for-the-badge&logo=resend)](https://resend.com/)
 [![Smartsupp](https://img.shields.io/badge/Smartsupp-Live%20Chat-FF6B00?style=for-the-badge)](https://www.smartsupp.com/)
 [![Google Translate](https://img.shields.io/badge/Google%20Translate-10%20Languages-4285F4?style=for-the-badge&logo=google-translate)](https://translate.google.com/)
 
@@ -31,16 +31,17 @@
   - [2. Admin Security PIN for Crypto Treasury](#2-admin-security-pin-for-crypto-treasury)
   - [3. Capital Investments & Live Stock Markets](#3-capital-investments--live-stock-markets)
   - [4. Vehicle Inventory & Energy Store](#4-vehicle-inventory--energy-store)
-  - [5. 5-Tier VIP Membership Hierarchy](#5-5-tier-vip-membership-hierarchy)
-  - [6. Resilient Identity Verification (KYC)](#6-resilient-identity-verification-kyc)
-  - [7. Promotional Giveaways & Lotteries](#7-promotional-giveaways--lotteries)
-  - [8. Omnichannel Customer Support Desk](#8-omnichannel-customer-support-desk)
-  - [9. Outbound Resend Email Dispatch Center](#9-outbound-resend-email-dispatch-center)
-  - [10. Anti-Spam Supabase Auth Email Templates](#10-anti-spam-supabase-auth-email-templates)
-  - [11. Luxury Minimalist UI & Micro-Interactivity](#11-luxury-minimalist-ui--micro-interactivity)
+  - [5. Tesla Premier Automotive & Energy Auctions](#5-tesla-premier-automotive--energy-auctions)
+  - [6. 5-Tier VIP Membership Hierarchy](#6-5-tier-vip-membership-hierarchy)
+  - [7. Resilient Identity Verification (KYC)](#7-resilient-identity-verification-kyc)
+  - [8. Promotional Giveaways & Lotteries](#8-promotional-giveaways--lotteries)
+  - [9. Omnichannel Customer Support Desk](#9-omnichannel-customer-support-desk)
+  - [10. Inbound & Outbound Resend Email Suite](#10-inbound--outbound-resend-email-suite)
+  - [11. Anti-Spam Supabase Auth Email Templates](#11-anti-spam-supabase-auth-email-templates)
+  - [12. Luxury Minimalist UI & Micro-Interactivity](#12-luxury-minimalist-ui--micro-interactivity)
 - [Database Architecture (PostgreSQL & Supabase)](#-database-architecture-postgresql--supabase)
   - [Entity Relationship Diagram](#entity-relationship-diagram)
-  - [Complete Table Catalog (22 Tables)](#complete-table-catalog-22-tables)
+  - [Complete Table Catalog (24 Tables)](#complete-table-catalog-24-tables)
   - [Storage Buckets & Media Policies](#storage-buckets--media-policies)
   - [Row-Level Security (RLS) Policies](#row-level-security-rls-policies)
 - [Project Directory Structure](#-project-directory-structure)
@@ -54,7 +55,7 @@
   - [6. Production Build & Prerender Verification](#6-production-build--prerender-verification)
 - [API Endpoints & Server Handlers](#-api-endpoints--server-handlers)
 - [Security, Risk & Compliance Guardrails](#-security-risk--compliance-guardrails)
-- [License & Trademark Notice](#-license--trademark-notice)
+- [License & Educational Notice](#-license--educational-notice)
 
 ---
 
@@ -66,10 +67,12 @@
 * **Real-time Stock Trading & Analytics** backed by liquid balance purchasing and historical performance graphs.
 * **Digital Multi-Asset Treasury** handling multichain deposits (BTC, ETH, USDT-TRC20, SOL), cash withdrawals, and simulated swaps.
 * **Tesla Vehicle & Energy Store** showcasing vehicles (Model S, 3, X, Y, Cybertruck) and Powerwall / Solar Roof installations with inventory-level gating.
+* **Tesla Premier Automotive Auctions** featuring live bidding, balance-backed escrow holds, anti-snipe countdown extensions, and automated order settlement.
 * **5-Tier VIP Membership Architecture** offering dynamic platform discounts from 0% up to 25%.
 * **Resilient KYC Pipeline** featuring multi-document submission with dual-layer cloud storage and Base64 fallback.
 * **Promotional Lottery Lotteries** equipped with live countdown timers and automated winner selection.
-* **Executive Back-Office Command Suite** for complete oversight across users, balances, order pipelines, tickets, emails, and system health.
+* **Complete Inbound & Outbound Email Center** via Resend with webhook ingestion, customer recognition, and 1-click threaded reply.
+* **Executive Back-Office Command Suite** for complete oversight across users, balances, order pipelines, auctions, tickets, emails, and system health.
 
 Built with **Next.js 16 (Turbopack)**, **React 19**, **Supabase SSR**, and **PostgreSQL with Row-Level Security (RLS)**, the application enforces complete mathematical balance validation, automated transaction ledger accounting, and administrative authorization gates.
 
@@ -77,7 +80,7 @@ Built with **Next.js 16 (Turbopack)**, **React 19**, **Supabase SSR**, and **Pos
 
 ## 🏛️ System Architecture & Surface Mapping
 
-The platform is architected into **four distinct operating layers** across **41 production routes**:
+The platform is architected into **four distinct operating layers** across **46 production routes**:
 
 ```text
 TESLA CAPITALS PLATFORM
@@ -108,6 +111,8 @@ TESLA CAPITALS PLATFORM
 │   ├── /portfolio                # Consolidated equity holdings, position P&L tracking, average cost basis
 │   ├── /inventory                # Vehicles (Model S/3/X/Y/Cybertruck), Powerwall, Solar Roof catalog
 │   ├── /inventory/[id]           # Technical specs, real-time stock quantity, balance-checked checkout
+│   ├── /auctions                 # Tesla Premier Vault, live vehicle lots, reserve status, countdown timers
+│   ├── /auctions/[id]            # Live bidding arena, quick-bid deck, soft-close buffer, bid history
 │   ├── /orders                   # Live order status tracking (Pending → Confirmed → Shipped → Delivered)
 │   ├── /vip                      # 5-Tier membership matrix (Standard to Platinum, 0% to 25% discounts)
 │   ├── /giveaways                # Promotional lotteries, ticket counts, real-time countdown clocks
@@ -122,11 +127,12 @@ TESLA CAPITALS PLATFORM
     ├── /admin/investments        # Investment fund creator & full edit modal (name, category, return %, duration)
     ├── /admin/stocks             # Stock ticker manager, live price updates, custom icon URL input
     ├── /admin/inventory          # Product store management, pricing, stock levels, image CDN URLs
+    ├── /admin/auctions           # Auction manager, lot builder, hammer close settlement, extend clock
     ├── /admin/orders             # Order pipeline status updater (Pending → Delivered), shipment tracking
     ├── /admin/kyc                # Document review modal, 1-click approve/reject syncing profile status
     ├── /admin/vip                # VIP tier creator/editor (pricing, discount %, custom bullet benefits)
     ├── /admin/giveaways          # Giveaway publisher, participant viewer, automated random winner picker
-    ├── /admin/emails             # Outbound Resend email center (support@teslacapitals.app) with templates
+    ├── /admin/emails             # Full Resend Email Suite: Inbound Webhook Inbox, Outbox, Threaded Reply
     ├── /admin/support            # Support ticket desk, reply composer, ticket resolution
     └── /admin/settings           # System status monitor, connection health, admin audit trail
 ```
@@ -136,7 +142,7 @@ TESLA CAPITALS PLATFORM
 ## 🌟 Core Feature Deep Dive
 
 ### 1. 💳 Digital Treasury & Multi-Asset Wallet
-* **Available Balance Engine**: Users fund investments, stocks, memberships, and inventory directly from their liquid cash balance (`wallet_balance`). All transactions verify sufficient funds before committing to the database.
+* **Available Balance Engine**: Users fund investments, stocks, memberships, inventory, and auctions directly from their liquid cash balance (`wallet_balance`). All transactions verify sufficient funds before committing to the database.
 * **Multichain Crypto Deposits**: Users select from supported networks (**Bitcoin, Ethereum ERC20, USDT TRC20, Solana**), copy the administrator's designated public address, and submit their transaction hash and proof screenshot.
 * **Withdrawal Requests**: Secure payouts with destination address validation, balance reservation, and an admin authorization queue.
 * **Instant Asset Swap**: Simulated currency exchange calculator between USD, BTC, ETH, and USDT.
@@ -162,7 +168,20 @@ TESLA CAPITALS PLATFORM
 * **VIP Discount Application**: Users in active VIP tiers automatically receive percentage deductions off product retail prices at checkout.
 * **5-Stage Order Tracking**: Real-time status pipeline (`Pending` &rarr; `Confirmed` &rarr; `Processing` &rarr; `Shipped` &rarr; `Delivered`).
 
-### 5. 👑 5-Tier VIP Membership Hierarchy
+### 5. 🏎️ Tesla Premier Automotive & Energy Auctions
+A dedicated luxury automotive and collector auction arena:
+* **Featured Lots**: Rare collector builds (e.g. *2026 Cybertruck Cyberbeast Foundation Series #001*, *2026 Model S Plaid Track Edition*, *2008 Tesla Roadster Collector #001*).
+* **Balance-Backed Bidding Escrow**: Members must hold sufficient liquid funds (`wallet_balance >= amount`) to place bids. When outbid, funds are instantaneously released back to their liquid balance.
+* **Anti-Snipe Protection (Soft Close)**: Any bid placed within the final **120 seconds** auto-extends the auction clock by **+2 minutes**, preventing last-second sniping and maximizing fair market value.
+* **Quick-Bid Deck**: One-click increment buttons (`+$500`, `+$1,000`, `+$2,500`) alongside custom bid input and Buy-It-Now instant settlement.
+* **Transparent Live Bid History**: Real-time feed showing bids with masked handles (`J***n`), amounts, and timestamps.
+* **Executive Admin Auction Desk (`/admin/auctions`)**:
+  * **Lot Builder**: Pick inventory vehicles or enter custom specs, VIN, reserve prices, and bid increments.
+  * **Hammer Close Settle**: Instantly closes the auction, declares highest bidder the winner, automatically debits their `wallet_balance`, and generates a verified order in `orders`.
+  * **Time Extensions**: Add +15m, +1h, or +1d to build momentum.
+  * **House / Floor Bids**: Official platform bids to test or stimulate bidding activity.
+
+### 6. 👑 5-Tier VIP Membership Hierarchy
 Dynamic tiers configured in PostgreSQL offering platform-wide investment and store discounts:
 
 | Tier | Monthly Fee | Deal Discount | Key Platform Perks |
@@ -176,33 +195,35 @@ Dynamic tiers configured in PostgreSQL offering platform-wide investment and sto
 * **Balance-Deducted Upgrades**: Members upgrade tiers directly using available wallet funds.
 * **Admin Tier Manager**: Full CRUD modal in `/admin/vip` for editing tier prices, discounts, and benefit lists.
 
-### 6. 📑 Resilient Identity Verification (KYC)
+### 7. 📑 Resilient Identity Verification (KYC)
 * **Multi-Document Submission**: Government ID, International Passport, and Proof of Address.
 * **Dual Storage Pipeline**: Directly uploads to Supabase Storage bucket `kyc-documents` with an automatic, resilient Base64 image fallback for uninterrupted submissions.
 * **Admin Review Modal**: Interactive previewer in `/admin/kyc` allowing 1-click approval or rejection with automatic profile status synchronization.
-* **Conditional Gating**: When `is_kyc_mandated` is enabled by an admin, unverified users are directed to complete verification before initiating financial transactions.
+* **Conditional Gating**: When `is_kyc_mandated` is enabled by an admin, unverified users are directed to complete verification before initiating financial transactions or auction bids.
 
-### 7. 🎁 Promotional Giveaways & Lotteries
+### 8. 🎁 Promotional Giveaways & Lotteries
 * High-value promotional drawings (e.g., Model 3 Performance, Tesla Solar Roof Installation, Cybertruck Delivery).
 * Real-time countdown clocks with micro-animations and pulsing time separators.
 * Single-click entry recording in `giveaway_entries`.
 * Administrator giveaway publisher with an automated **Random Winner Picker** algorithm.
 
-### 8. 💬 Omnichannel Customer Support Desk
+### 9. 💬 Omnichannel Customer Support Desk
 * **Smartsupp Live Support**: Embedded official live chat widget (`key: c05be36e24ee807115b86998797a8d2b55e08c7a`) accessible across all pages.
 * **In-App Support Tickets**: Threaded customer messaging desk with priority levels (Low, Normal, High, Urgent) and attachment handling.
 * **Admin Resolution Suite**: Administrative reply composer with 1-click ticket status transitions (`Open` &rarr; `In Progress` &rarr; `Resolved`).
 
-### 9. 📬 Outbound Resend Email Dispatch Center
-* In-app admin email client (`/admin/emails`) connected to Resend's REST API.
-* Pre-built corporate templates:
-  * **Welcome Member**: Institutional onboarding communication.
-  * **Deposit Received & Credited**: Confirmation of crypto/fiat funds credited to member wallet.
-  * **KYC Verification Notice**: Compliance confirmation or resubmission request.
-* Custom rich HTML composition editor with real-time preview.
-* Persistent database audit log (`email_logs`) tracking recipient, subject, dispatch status, and timestamp.
+### 10. 📬 Inbound & Outbound Resend Email Suite
+A complete corporate email hub (`support@teslacapitals.app`):
+* **Inbound Webhook Endpoint (`/api/webhooks/resend-inbound`)**: Ingests incoming customer inquiries, parsing sender, recipient, subject, HTML, plain text, and attachments.
+* **Admin Email Desk (`/admin/emails`)**:
+  * **📥 Inbox Tab**: Real-time list of customer inquiries with unread indicators.
+  * **📤 Outbox Tab**: Audit log of sent communications with delivery states.
+  * **Message Reader**: Full email viewer with sanitized HTML rendering.
+  * **Member Recognition Card**: Automatically displays the sender's full name, email, VIP Tier, liquid balance, and KYC status when matching a registered member.
+  * **1-Click Threaded Reply**: Pre-fills recipient, sets `Re: <subject>`, quotes previous message history, and links thread IDs.
+  * **Simulate Inbound Tool**: Built-in test modal to simulate receiving incoming customer emails for instant verification.
 
-### 10. 📧 Anti-Spam Supabase Auth Email Templates
+### 11. 📧 Anti-Spam Supabase Auth Email Templates
 Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp dark branding are located in `supabase/templates/`:
 
 * [`confirm_signup.html`](supabase/templates/confirm_signup.html) &mdash; New user account verification
@@ -213,7 +234,7 @@ Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp 
 
 > **Anti-Spam Optimization**: Engineered with a high text-to-HTML ratio, zero remote tracking image bloat, and pure semantic styling to achieve 100% inbox delivery across Gmail, Outlook, and Apple Mail.
 
-### 11. 🎨 Luxury Minimalist UI & Micro-Interactivity
+### 12. 🎨 Luxury Minimalist UI & Micro-Interactivity
 * **Inter Typography & Sharp Borders**: Minimalist Tesla-inspired design language utilizing deep blacks (`#090a0f`), dark charcoal cards (`#121520`), and Tesla Red accents (`#e82127`).
 * **Light / Dark / System Theme Toggle**: Custom ThemeProvider preventing layout flash (FOUC).
 * **Google Translate Hub**: Seamless multi-language switcher supporting **10 languages** (English, Spanish, French, German, Chinese, Japanese, Arabic, Portuguese, Russian, Korean).
@@ -241,6 +262,10 @@ Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp 
        │               └──────────────────────┘       └──────────────────────┘
        │
        │──────────────<┌──────────────────────┐       ┌──────────────────────┐
+       │               │     auction_bids     │>──────│       auctions       │
+       │               └──────────────────────┘       └──────────────────────┘
+       │
+       │──────────────<┌──────────────────────┐       ┌──────────────────────┐
        │               │   giveaway_entries   │>──────│      giveaways       │
        │               └──────────────────────┘       └──────────────────────┘
        │
@@ -265,15 +290,15 @@ Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp 
        │               └──────────────────────┘
        │
        │──────────────<┌──────────────────────┐
-       │               │    notifications     │
+       │               │    resend_emails     │ (Inbound & Outbound Webmail)
        │               └──────────────────────┘
        │
        └──────────────<┌──────────────────────┐
-                       │ admin_activity_logs  │
+                       │    notifications     │
                        └──────────────────────┘
 ```
 
-### Complete Table Catalog (22 Tables)
+### Complete Table Catalog (24 Tables)
 
 | # | Table Name | Description | Key Columns |
 | :-: | :--- | :--- | :--- |
@@ -285,20 +310,22 @@ Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp 
 | 6 | `portfolio_holdings` | Equity shares held by members | `id`, `user_id`, `stock_id`, `shares`, `avg_cost`, `created_at` |
 | 7 | `products` | Tesla vehicles, Powerwall & Solar catalog | `id`, `name`, `category`, `price`, `image_url`, `specs`, `stock_qty`, `is_available` |
 | 8 | `orders` | Vehicle & energy purchase orders | `id`, `order_number`, `user_id`, `product_id`, `total`, `status`, `tracking_info` |
-| 9 | `vip_tiers` | 5-tier membership plans & discount rates | `id`, `name`, `price`, `discount_percent`, `benefits`, `is_active` |
-| 10 | `giveaways` | Promotional drawings & lotteries | `id`, `title`, `description`, `image_url`, `starts_at`, `ends_at`, `status`, `winner_id` |
-| 11 | `giveaway_entries` | Member raffle ticket entries | `id`, `giveaway_id`, `user_id`, `created_at` |
-| 12 | `kyc_documents` | Identity verification files | `id`, `user_id`, `doc_type`, `file_url`, `status`, `admin_notes`, `reviewed_at` |
-| 13 | `support_tickets` | Customer service tickets | `id`, `ticket_number`, `user_id`, `subject`, `category`, `status`, `priority` |
-| 14 | `support_messages` | Threaded customer support messages | `id`, `ticket_id`, `sender_id`, `message`, `is_internal`, `created_at` |
-| 15 | `notifications` | Member inbox alerts & push messages | `id`, `user_id`, `title`, `message`, `type`, `is_read`, `link` |
-| 16 | `transactions` | Immutable double-entry financial ledger | `id`, `user_id`, `type`, `amount`, `description`, `reference_id`, `created_at` |
-| 17 | `crypto_addresses` | Treasury deposit wallets (PIN guarded) | `id`, `currency`, `network`, `address`, `qr_code_url`, `is_active` |
-| 18 | `deposit_requests` | Member crypto deposit submissions | `id`, `user_id`, `amount`, `currency`, `tx_hash`, `proof_url`, `status` |
-| 19 | `withdrawal_requests`| Member cash/crypto payout requests | `id`, `user_id`, `amount`, `currency`, `destination_address`, `status` |
-| 20 | `email_logs` | Outbound Resend email dispatch history | `id`, `recipient`, `subject`, `template`, `status`, `resend_id`, `created_at` |
-| 21 | `admin_activity_logs`| Audit log of administrative operations | `id`, `admin_id`, `action`, `entity_type`, `entity_id`, `metadata` |
-| 22 | `articles` | Educational & research publication posts | `id`, `title`, `slug`, `content`, `excerpt`, `category`, `author`, `reading_time` |
+| 9 | `auctions` | Rare vehicle & collector lots | `id`, `title`, `starting_price`, `reserve_price`, `current_bid`, `ends_at`, `status`, `winner_id`, `total_bids` |
+| 10 | `auction_bids` | Live bid history & audit trail | `id`, `auction_id`, `user_id`, `amount`, `status`, `created_at` |
+| 11 | `vip_tiers` | 5-tier membership plans & discount rates | `id`, `name`, `price`, `discount_percent`, `benefits`, `is_active` |
+| 12 | `giveaways` | Promotional drawings & lotteries | `id`, `title`, `description`, `image_url`, `starts_at`, `ends_at`, `status`, `winner_id` |
+| 13 | `giveaway_entries` | Member raffle ticket entries | `id`, `giveaway_id`, `user_id`, `created_at` |
+| 14 | `kyc_documents` | Identity verification files | `id`, `user_id`, `doc_type`, `file_url`, `status`, `admin_notes`, `reviewed_at` |
+| 15 | `support_tickets` | Customer service tickets | `id`, `ticket_number`, `user_id`, `subject`, `category`, `status`, `priority` |
+| 16 | `support_messages` | Threaded customer support messages | `id`, `ticket_id`, `sender_id`, `message`, `is_internal`, `created_at` |
+| 17 | `notifications` | Member inbox alerts & push messages | `id`, `user_id`, `title`, `message`, `type`, `is_read`, `link` |
+| 18 | `transactions` | Immutable double-entry financial ledger | `id`, `user_id`, `type`, `amount`, `description`, `reference_id`, `created_at` |
+| 19 | `crypto_addresses` | Treasury deposit wallets (PIN guarded) | `id`, `currency`, `network`, `address`, `qr_code_url`, `is_active` |
+| 20 | `deposit_requests` | Member crypto deposit submissions | `id`, `user_id`, `amount`, `currency`, `tx_hash`, `proof_url`, `status` |
+| 21 | `withdrawal_requests`| Member cash/crypto payout requests | `id`, `user_id`, `amount`, `currency`, `destination_address`, `status` |
+| 22 | `resend_emails` | Inbound & outbound email messages | `id`, `direction`, `from_email`, `to_email`, `subject`, `body_html`, `is_read`, `thread_id` |
+| 23 | `admin_activity_logs`| Audit log of administrative operations | `id`, `admin_id`, `action`, `entity_type`, `entity_id`, `metadata` |
+| 24 | `articles` | Educational & research publication posts | `id`, `title`, `slug`, `content`, `excerpt`, `category`, `author`, `reading_time` |
 
 ### Storage Buckets & Media Policies
 
@@ -314,7 +341,7 @@ Custom-tailored, minimal HTML email templates styled with Tesla Capitals' sharp 
 
 All tables are protected with PostgreSQL Row-Level Security:
 * **Member Isolation**: Regular members are restricted to querying and updating records matching their authenticated `auth.uid()`.
-* **Public Catalogs**: Stocks, products, articles, VIP tiers, and active giveaways are publicly readable by unauthenticated visitors.
+* **Public Catalogs**: Stocks, products, active auctions, articles, VIP tiers, and active giveaways are publicly readable by unauthenticated visitors.
 * **Administrative Master Definer**: The PostgreSQL security function `is_admin()` verifies administrator credentials against `profiles.role = 'admin'` to allow privileged management across all tables.
 
 ---
@@ -338,6 +365,8 @@ tesla-capitals/
 │   │   └── page.tsx                    # Luxury Landing Page & Hero
 │   ├── (member)/                       # Authenticated Member Wealth Suite
 │   │   ├── account/                    # User Profile & KYC Upload
+│   │   ├── auctions/                   # Automotive Auction Floor
+│   │   │   └── [id]/                   # Live Bidding Arena & Clock
 │   │   ├── dashboard/                  # Central Net Worth KPI & Analytics
 │   │   ├── giveaways/                  # Lottery Drawings & Countdown Clocks
 │   │   ├── inventory/                  # Vehicle & Energy Product Store
@@ -353,7 +382,8 @@ tesla-capitals/
 │   │   ├── vip/                        # 5-Tier VIP Matrix & Upgrade Request
 │   │   └── wallet/                     # Liquid Balance, Crypto Deposits & Swaps
 │   ├── admin/                          # Executive Admin Command Center
-│   │   ├── emails/                     # Resend Outbound Email Center
+│   │   ├── auctions/                   # Auction Manager, Lot Builder & Hammer Close
+│   │   ├── emails/                     # Resend Email Suite (Inbox / Outbox / Reply)
 │   │   ├── giveaways/                  # Lottery Publisher & Winner Picker
 │   │   ├── inventory/                  # Product Catalog & Stock Manager
 │   │   ├── investments/                # Fund Creator & Edit Modals
@@ -368,7 +398,12 @@ tesla-capitals/
 │   │   ├── wallet/                     # Crypto Address Manager (PIN Guarded)
 │   │   └── page.tsx                    # Executive Command Dashboard
 │   ├── api/
-│   │   └── emails/send/route.ts        # Resend REST API Outbound Dispatcher
+│   │   ├── auctions/
+│   │   │   ├── admin/action/route.ts   # Admin Auction Actions (Hammer Close, Extend)
+│   │   │   └── bid/route.ts            # Member Live Bidding & Balance Escrow
+│   │   ├── emails/send/route.ts        # Resend REST API Outbound Dispatcher
+│   │   └── webhooks/
+│   │       └── resend-inbound/route.ts # Inbound Customer Email Ingestion
 │   ├── auth/
 │   │   └── callback/route.ts           # Supabase PKCE Code Exchange Handler
 │   ├── globals.css                     # Design System Tokens & Base Styles
@@ -400,7 +435,8 @@ tesla-capitals/
 │   │   ├── 003_triggers.sql            # Automated Profile Creation Trigger
 │   │   ├── 004_storage.sql             # Supabase Storage Buckets
 │   │   ├── 005_expansion.sql           # Wallet, Crypto & Email Tables
-│   │   └── 006_fixes_and_storage.sql   # VIP 5 Tiers, Storage & Address Fixes
+│   │   ├── 006_fixes_and_storage.sql   # VIP 5 Tiers, Storage & Address Fixes
+│   │   └── 007_inbound_and_auctions.sql# Inbound Email Suite & Vehicle Auctions
 │   ├── seed.sql                        # Catalog Data for Vehicles & Stocks
 │   └── templates/                      # Anti-Spam Supabase Auth Emails
 │       ├── change_email.html           # Change Email Verification
@@ -454,7 +490,7 @@ NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key-here"
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key-here"
 
-# Resend Email Integration (Optional for local testing, required for live email delivery)
+# Resend Email Integration (Optional for local testing, required for live delivery)
 RESEND_API_KEY="re_your_resend_api_key"
 
 # Admin Security PIN (Guards crypto address modifications; defaults to 8888)
@@ -476,7 +512,8 @@ Open the **[Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql)**
 4. [`supabase/migrations/004_storage.sql`](supabase/migrations/004_storage.sql) &mdash; *Initial storage buckets*
 5. [`supabase/migrations/005_expansion.sql`](supabase/migrations/005_expansion.sql) &mdash; *Wallet balance engine, crypto tables, email log*
 6. [`supabase/migrations/006_fixes_and_storage.sql`](supabase/migrations/006_fixes_and_storage.sql) &mdash; *5 VIP tiers, public KYC bucket, address defaults*
-7. [`supabase/seed.sql`](supabase/seed.sql) &mdash; *Sample vehicle inventory, stock tickers, and capital funds*
+7. [`supabase/migrations/007_inbound_and_auctions.sql`](supabase/migrations/007_inbound_and_auctions.sql) &mdash; *Inbound email expansion & vehicle auction engine*
+8. [`supabase/seed.sql`](supabase/seed.sql) &mdash; *Sample vehicle inventory, stock tickers, and capital funds*
 
 ---
 
@@ -510,38 +547,48 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. The applica
 pnpm build
 ```
 
-> **Build Status:** Compiles all 41 routes with **0 TypeScript or prerender errors**.
+> **Build Status:** Compiles all 46 routes with **0 TypeScript or prerender errors**.
 
 ---
 
 ## ⚡ API Endpoints & Server Handlers
 
-### 1. `POST /api/emails/send`
+### 1. `POST /api/webhooks/resend-inbound`
+Webhook ingestion endpoint that receives incoming customer emails from Resend or test simulation triggers.
+* **Payload Structure:** Accepts Resend MIME payload (`from`, `to`, `subject`, `text`, `html`, `attachments`, `headers`).
+* **Customer Profile Matching:** Automatically checks if the sender email matches a registered member profile to attach full account context.
+* **Storage:** Records the message in `resend_emails` with `direction = 'inbound'` and notifies administrators.
+
+### 2. `POST /api/emails/send`
 Dispatches outbound corporate communications through the Resend REST API from `Tesla Capital Support <support@teslacapitals.app>`.
-
 * **Authorization:** Requires authenticated user session with `role = 'admin'`.
-* **Payload Structure:**
-  ```json
-  {
-    "to": "investor@example.com",
-    "subject": "Your Deposit Has Been Credited",
-    "html": "<h1>Deposit Credited</h1><p>Your deposit of $25,000.00 USD has been approved.</p>",
-    "template": "deposit_received"
-  }
-  ```
-* **Simulation Fallback:** If `RESEND_API_KEY` is not present, the endpoint logs the communication directly to the `email_logs` table with `status: 'simulated'`, enabling comprehensive local offline testing.
+* **Threading Support:** Attaches `In-Reply-To` headers and logs outbound messages with `direction = 'outbound'`.
+* **Simulation Fallback:** If `RESEND_API_KEY` is not present, the endpoint logs the communication directly to the database with `status: 'simulated'`, enabling full offline testing.
 
-### 2. `GET /auth/callback`
+### 3. `POST /api/auctions/bid`
+Handles live member bids with balance-backed escrow validation.
+* **Authorization:** Authenticated user with approved KYC (if mandated).
+* **Validation:** Verifies `wallet_balance >= amount` and `amount >= current_bid + min_bid_increment`.
+* **Soft-Close Anti-Snipe:** If bid occurs within the final 120 seconds, automatically extends `ends_at` by +2 minutes.
+
+### 4. `POST /api/auctions/admin/action`
+Privileged operations desk for administrators:
+* `extend_time`: Extends auction countdown by specified minutes (+15m, +1h, +1d).
+* `hammer_close`: Ends auction immediately, awards lot to top bidder, debits their `wallet_balance`, and generates a confirmed order in `orders`.
+* `cancel_auction`: Retracts bids and voids the auction lot.
+* `house_bid`: Allows administrators to place platform floor/reserve bids.
+
+### 5. `GET /auth/callback`
 Processes OAuth redirects from Google and X/Twitter as well as magic link tokens. Uses `@supabase/ssr` to exchange PKCE auth codes for session cookies, refreshes user credentials, and routes users to `/dashboard` or `/admin` based on verified profile role.
 
 ---
 
 ## 🔒 Security, Risk & Compliance Guardrails
 
-* **Mathematical Balance Guardrails**: Every balance-deducted transaction (Investments, Stock Buy orders, Inventory purchases, and VIP tier upgrades) validates that `wallet_balance >= amount` directly inside atomic server-side queries.
+* **Mathematical Balance Guardrails**: Every balance-deducted transaction (Investments, Stock Buy orders, Inventory purchases, and Auction bids) validates that `wallet_balance >= amount` directly inside atomic server-side queries.
 * **Server-Side Route Middleware**: `middleware.ts` intercepts incoming requests, verifying session freshness and enforcing role authorization for `/admin/*` routes.
 * **Admin PIN Double-Check**: Critical modifications to treasury deposit addresses require entering the 4-digit security PIN to prevent unauthorized alterations.
-* **KYC Mandate Redirects**: When an administrator toggles `is_kyc_mandated = true` for a member, any attempt to trade stocks, fund investments, or initiate wallet transactions immediately redirects the user to `/account?kyc_required=true`.
+* **KYC Mandate Redirects**: When an administrator toggles `is_kyc_mandated = true` for a member, any attempt to trade stocks, fund investments, bid on auctions, or initiate wallet transactions immediately redirects the user to `/account?kyc_required=true`.
 * **Financial Risk Disclosure**: Prominently features statutory risk warnings across `/risk-disclosure` and order confirmation dialogs, clearly articulating simulated demo mechanics.
 
 ---
