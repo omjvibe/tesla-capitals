@@ -50,14 +50,28 @@ export function LoginForm() {
     setSocialLoading(provider)
     setError('')
     const supabase = createClient()
+
+    // Build provider-specific options
+    const providerOptions: Record<string, unknown> = {
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
+      skipBrowserRedirect: false,
+    }
+
+    // Twitter/X OAuth 2.0 requires explicit scopes
+    if (provider === 'twitter') {
+      providerOptions.scopes = 'tweet.read users.read offline.access'
+    }
+
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
-      },
+      options: providerOptions as any,
     })
+
     if (authError) {
-      setError(authError.message)
+      const msg = provider === 'twitter'
+        ? `X/Twitter login failed: ${authError.message}. Please ensure the X provider is enabled in your Supabase project and the callback URL is configured correctly in the X Developer Portal.`
+        : authError.message
+      setError(msg)
       setSocialLoading(null)
     }
   }

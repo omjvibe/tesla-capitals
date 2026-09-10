@@ -10,7 +10,14 @@ export async function GET(request: Request) {
   const errorDesc = searchParams.get('error_description')
 
   if (errorParam || errorDesc) {
-    const message = errorDesc || (errorParam === 'unsupported_provider' ? 'OAuth provider is not enabled in Supabase.' : 'Authentication failed. Please try again.')
+    let message = errorDesc || 'Authentication failed. Please try again.'
+    if (errorParam === 'unsupported_provider') {
+      message = 'OAuth provider is not enabled in Supabase. Please contact support.'
+    } else if (errorParam === 'access_denied') {
+      message = 'Access denied by the provider. You may have declined permissions or the app is not approved. Please try again.'
+    } else if (errorParam === 'server_error' || errorParam === 'temporarily_unavailable') {
+      message = 'The authentication provider is temporarily unavailable. Please try again in a few moments.'
+    }
     return NextResponse.redirect(
       `${origin}/login?error=${encodeURIComponent(errorParam || 'auth_error')}&error_description=${encodeURIComponent(message)}`
     )

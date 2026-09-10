@@ -1,7 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowDownRight, ArrowUpRight, MoreHorizontal, Plus, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Fuel, Gauge, MoreHorizontal, Plus, TrendingUp, Zap } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from 'recharts'
 import { PlatformShell } from '@/components/platform-shell'
 import type { Profile, InvestmentHolding, PortfolioHolding, Stock, Transaction, DashboardStats } from '@/types'
 
@@ -9,16 +22,98 @@ function fmt(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
 
-function Stat({ label, value, change, down = false }: { label: string; value: string; change?: string; down?: boolean }) {
+function fmtCompact(n: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact' }).format(n)
+}
+
+/* ── Animated Stat Card ─────────────────────────────── */
+function Stat({
+  label,
+  value,
+  change,
+  down = false,
+  icon: Icon,
+  delay = 0,
+  sparkData,
+}: {
+  label: string
+  value: string
+  change?: string
+  down?: boolean
+  icon?: React.ElementType
+  delay?: number
+  sparkData?: number[]
+}) {
   return (
-    <div className="border border-border bg-card p-5">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+    <div
+      className="animate-count-up border border-border bg-card p-5 transition-all duration-300 hover:border-primary/50 animate-pulse-glow"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+        {Icon && <Icon size={16} className="text-primary/60" />}
+      </div>
       <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
-      {change && (
-        <p className={`mt-2 flex items-center gap-1 text-xs ${down ? 'text-primary' : 'text-muted-foreground'}`}>
-          {down ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{change}
-        </p>
-      )}
+      <div className="mt-2 flex items-center justify-between">
+        {change && (
+          <p className={`flex items-center gap-1 text-xs ${down ? 'text-primary' : 'text-green-500'}`}>
+            {down ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{change}
+          </p>
+        )}
+        {sparkData && sparkData.length > 0 && (
+          <div className="h-6 w-16">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sparkData.map(v => ({ v }))}>
+                <Bar dataKey="v" fill="currentColor" className="text-primary/40" radius={[1, 1, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── SVG Gauge Component ────────────────────────────── */
+function GaugeRing({ value, max, label }: { value: number; max: number; label: string }) {
+  const pct = max > 0 ? Math.min(value / max, 1) : 0
+  const circumference = 2 * Math.PI * 45
+  const offset = circumference * (1 - pct)
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg width="100" height="100" viewBox="0 0 100 100" className="chart-glow">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" className="text-border" strokeWidth="6" />
+        <circle
+          cx="50" cy="50" r="45"
+          fill="none"
+          stroke="currentColor"
+          className="text-primary animate-gauge"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 50 50)"
+          style={{ '--gauge-offset': offset } as React.CSSProperties}
+        />
+        <text x="50" y="48" textAnchor="middle" className="fill-foreground text-lg font-bold" fontSize="18">
+          {Math.round(pct * 100)}%
+        </text>
+        <text x="50" y="63" textAnchor="middle" className="fill-muted-foreground" fontSize="8">
+          {label}
+        </text>
+      </svg>
+    </div>
+  )
+}
+
+/* ── Chart Tooltip ──────────────────────────────────── */
+function ChartTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="border border-border bg-card px-3 py-2 text-xs shadow-lg">
+      <p className="font-mono text-muted-foreground">{label}</p>
+      <p className="font-bold text-primary">{fmt(payload[0].value)}</p>
     </div>
   )
 }
@@ -38,6 +133,30 @@ export function DashboardClient({ profile, investmentHoldings, portfolioHoldings
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const hasData = stats.totalBalance > 0 || investmentHoldings.length > 0 || portfolioHoldings.length > 0
 
+  // Generate mock performance data points from total balance
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const currentMonth = new Date().getMonth()
+  const performanceData = months.slice(0, currentMonth + 1).map((m, i) => {
+    const base = stats.totalBalance * 0.4
+    const growth = (stats.totalBalance - base) * (i / Math.max(currentMonth, 1))
+    const noise = (Math.random() - 0.5) * stats.totalBalance * 0.05
+    return { month: m, value: Math.max(0, base + growth + noise) }
+  })
+
+  // Allocation data for PieChart
+  const investmentTotal = investmentHoldings.reduce((s, h) => s + Number(h.current_value), 0)
+  const stockTotal = portfolioHoldings.reduce((s, h) => s + (Number(h.shares) * Number(h.stock?.price || 0)), 0)
+  const cashBalance = Math.max(0, stats.totalBalance - investmentTotal - stockTotal)
+  const allocationData = [
+    { name: 'Investments', value: investmentTotal, color: 'var(--primary)' },
+    { name: 'Stocks', value: stockTotal, color: 'var(--chart-2)' },
+    { name: 'Cash', value: cashBalance, color: 'var(--chart-3)' },
+  ].filter(d => d.value > 0)
+
+  // Spark data for stats
+  const txSpark = recentTransactions.slice(0, 7).map(t => Math.abs(Number(t.amount)))
+  const investSpark = investmentHoldings.map(h => Number(h.current_value))
+
   return (
     <PlatformShell>
       {/* Header */}
@@ -56,14 +175,35 @@ export function DashboardClient({ profile, investmentHoldings, portfolioHoldings
 
       {/* Stats Grid */}
       <div className="grid gap-3 py-8 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Total balance" value={fmt(stats.totalBalance)} change={stats.allTimeChange !== 0 ? `${stats.allTimeChange >= 0 ? '+' : ''}${fmt(stats.allTimeChange)} (${stats.allTimeChangePercent.toFixed(1)}%)` : undefined} down={stats.allTimeChange < 0} />
-        <Stat label="Available cash" value={fmt(stats.availableCash)} />
-        <Stat label="Invested" value={fmt(stats.investedAmount)} />
-        <Stat label="VIP status" value={(profile?.vip_tier || 'standard').toUpperCase()} change={profile?.vip_expires_at ? `Until ${new Date(profile.vip_expires_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'Active'} />
+        <Stat
+          label="Total balance"
+          value={fmt(stats.totalBalance)}
+          change={stats.allTimeChange !== 0 ? `${stats.allTimeChange >= 0 ? '+' : ''}${fmt(stats.allTimeChange)} (${stats.allTimeChangePercent.toFixed(1)}%)` : undefined}
+          down={stats.allTimeChange < 0}
+          icon={Gauge}
+          delay={0}
+          sparkData={txSpark}
+        />
+        <Stat label="Available cash" value={fmt(stats.availableCash)} icon={Fuel} delay={100} />
+        <Stat
+          label="Invested"
+          value={fmt(stats.investedAmount)}
+          icon={TrendingUp}
+          delay={200}
+          sparkData={investSpark}
+        />
+        <Stat
+          label="VIP status"
+          value={(profile?.vip_tier || 'standard').toUpperCase()}
+          change={profile?.vip_expires_at ? `Until ${new Date(profile.vip_expires_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'Active'}
+          icon={Zap}
+          delay={300}
+        />
       </div>
 
+      {/* Charts Row */}
       <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
-        {/* Portfolio Performance */}
+        {/* Portfolio Performance — AreaChart */}
         <section className="border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -71,46 +211,107 @@ export function DashboardClient({ profile, investmentHoldings, portfolioHoldings
               <p className="mt-2 text-2xl font-bold">{fmt(stats.totalBalance)}</p>
             </div>
             <span className="text-xs text-muted-foreground">
-              <span className="ml-3 bg-primary px-2 py-1 text-primary-foreground">ALL</span>
+              <span className="ml-3 bg-primary px-2 py-1 text-primary-foreground">YTD</span>
             </span>
           </div>
           {hasData ? (
-            <div className="mt-8 flex h-48 items-end gap-2 border-b border-border px-2">
-              {[35,42,38,55,49,62,58,72,67,82,76,94,88,100,92,110,104,128,120,145].map((h, i) => (
-                <div key={i} className="flex-1 bg-primary/80 transition-all hover:bg-primary" style={{ height: `${h}px` }} />
-              ))}
+            <div className="mt-6 h-52 chart-glow">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={performanceData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => fmtCompact(v)}
+                    width={50}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    strokeWidth={2.5}
+                    fill="url(#perfGradient)"
+                    dot={false}
+                    activeDot={{ r: 5, fill: 'var(--primary)', strokeWidth: 2, stroke: 'var(--background)' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             <div className="mt-8 flex h-48 items-center justify-center border-b border-border text-sm text-muted-foreground">
               Your performance chart will appear here once you start investing.
             </div>
           )}
-          <div className="mt-3 flex justify-between font-mono text-[10px] text-muted-foreground">
-            <span>JAN</span><span>MAR</span><span>JUN</span><span>SEP</span><span>DEC</span>
-          </div>
         </section>
 
-        {/* Allocation */}
+        {/* Allocation — Doughnut PieChart + Gauge */}
         <section className="border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Allocation</p>
             <MoreHorizontal size={17} className="text-muted-foreground" />
           </div>
-          {hasData ? (
+          {hasData && allocationData.length > 0 ? (
             <>
-              <div className="mx-auto my-8 grid size-36 place-items-center border-[18px] border-primary border-r-muted border-b-muted">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{stats.investedAmount > 0 ? Math.round((stats.investedAmount / (stats.totalBalance || 1)) * 100) : 0}%</p>
-                  <p className="font-mono text-[9px] text-muted-foreground">INVESTED</p>
+              <div className="mt-4 flex items-center justify-center gap-6">
+                <div className="h-44 w-44 chart-glow">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={allocationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={68}
+                        paddingAngle={3}
+                        dataKey="value"
+                        strokeWidth={0}
+                      >
+                        {allocationData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v: any) => fmt(Number(v) || 0)}
+                        contentStyle={{
+                          backgroundColor: 'var(--card)',
+                          border: '1px solid var(--border)',
+                          fontSize: '11px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
+                <GaugeRing
+                  value={investmentTotal + stockTotal}
+                  max={stats.totalBalance || 1}
+                  label="DEPLOYED"
+                />
               </div>
-              <div className="flex justify-between border-t border-border pt-4 text-xs">
-                <span className="text-muted-foreground">Investments</span>
-                <b>{investmentHoldings.length} positions</b>
-              </div>
-              <div className="mt-3 flex justify-between text-xs">
-                <span className="text-muted-foreground">Stocks</span>
-                <b>{portfolioHoldings.length} positions</b>
+
+              {/* Legend */}
+              <div className="mt-4 space-y-2 border-t border-border pt-4">
+                {allocationData.map(d => (
+                  <div key={d.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="size-2.5" style={{ backgroundColor: d.color }} />
+                      <span className="text-muted-foreground">{d.name}</span>
+                    </div>
+                    <span className="font-bold">{fmt(d.value)}</span>
+                  </div>
+                ))}
               </div>
             </>
           ) : (

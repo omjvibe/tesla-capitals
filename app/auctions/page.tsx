@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { AuctionsClient } from './auctions-client'
+import { AuctionsClient } from '@/app/auctions/auctions-client'
 import type { Auction } from '@/types'
 
 export default async function AuctionsPage() {
@@ -10,7 +10,7 @@ export default async function AuctionsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, email, full_name, wallet_balance, is_kyc_mandated, kyc_status, vip_tier')
+    .select('*')
     .eq('id', user.id)
     .single()
 

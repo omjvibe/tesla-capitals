@@ -142,15 +142,25 @@ export interface Giveaway {
   ends_at: string
   status: GiveawayStatus
   winner_id: string | null
+  entry_fee: number
+  max_entries: number | null
+  eligible_tiers: string[] | null
+  prize_value: number | null
+  prize_description: string | null
   created_at: string
   entries_count?: number
+  winner?: Profile
 }
 
 export interface GiveawayEntry {
   id: string
   giveaway_id: string
   user_id: string
+  is_admin_selected: boolean
+  paid_amount: number
+  notes: string | null
   created_at: string
+  user?: Profile
 }
 
 export interface KycDocument {
