@@ -29,3 +29,6 @@ export interface AdminKPIs {
   vipMembers: number
   totalInvestmentValue: number
 }
+
+export type EmailLog = import('./database').ResendEmail
+

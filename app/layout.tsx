@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import { AuthProvider, ThemeProvider } from '@/lib/auth/provider'
 import { ToastProvider } from '@/components/ui/toast'
 import './globals.css'
@@ -36,6 +37,24 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
+        
+        {/* Smartsupp Live Chat Script */}
+        <Script
+          id="smartsupp-chat"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              var _smartsupp = _smartsupp || {};
+              _smartsupp.key = 'c05be36e24ee807115b86998797a8d2b55e08c7a';
+              window.smartsupp||(function(d) {
+                var s,c,o=smartsupp=function(){ o._.push(arguments)};o._=[];
+                s=d.getElementsByTagName('script')[0];c=d.createElement('script');
+                c.type='text/javascript';c.charset='utf-8';c.async=true;
+                c.src='https://www.smartsuppchat.com/loader.js?';s.parentNode.insertBefore(c,s);
+              })(document);
+            `,
+          }}
+        />
       </body>
     </html>
   )

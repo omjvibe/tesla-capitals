@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Check, Circle, Upload, ShieldCheck, UserRound } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/toast'
 import type { Profile, KycDocument } from '@/types'
 
 const docTypes = [
@@ -21,6 +22,7 @@ const kycStatusColors: Record<string, string> = {
 
 export function AccountClient({ profile, kycDocs, userId }: { profile: Profile | null; kycDocs: KycDocument[]; userId: string }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [fullName, setFullName] = useState(profile?.full_name || '')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -32,8 +34,13 @@ export function AccountClient({ profile, kycDocs, userId }: { profile: Profile |
     const supabase = createClient()
     const { error } = await supabase.from('profiles').update({ full_name: fullName }).eq('id', userId)
     setMessage(error ? error.message : 'Profile updated successfully.')
+    if (!error) {
+      toast('Profile Updated', 'Personal information saved successfully.')
+      router.refresh()
+    } else {
+      toast('Update Failed', error.message, 'error')
+    }
     setSaving(false)
-    if (!error) router.refresh()
   }
 
   const handleUpload = async (docType: string, file: File) => {
@@ -41,20 +48,51 @@ export function AccountClient({ profile, kycDocs, userId }: { profile: Profile |
     const supabase = createClient()
     const path = `${userId}/${docType}-${Date.now()}.${file.name.split('.').pop()}`
 
+    let fileUrl = ''
+
     const { error: uploadError } = await supabase.storage.from('kyc-documents').upload(path, file)
-    if (uploadError) { setUploading(null); return }
+    
+    if (uploadError) {
+      // If bucket doesn't exist yet or storage fails, use base64 fallback for images under 3MB
+      if (file.type.startsWith('image/') && file.size < 3 * 1024 * 1024) {
+        try {
+          fileUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+        } catch {
+          toast('Upload Failed', uploadError.message, 'error')
+          setUploading(null)
+          return
+        }
+      } else {
+        toast('Storage Bucket Missing', `${uploadError.message}. Please create the 'kyc-documents' bucket in Supabase Storage.`, 'error')
+        setUploading(null)
+        return
+      }
+    } else {
+      const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(path)
+      fileUrl = publicUrl
+    }
 
-    const { data: { publicUrl } } = supabase.storage.from('kyc-documents').getPublicUrl(path)
-
-    await supabase.from('kyc_documents').insert({
+    const { error: docError } = await supabase.from('kyc_documents').insert({
       user_id: userId,
       doc_type: docType,
-      file_url: publicUrl,
+      file_url: fileUrl,
     })
+
+    if (docError) {
+      toast('Failed to record document', docError.message, 'error')
+      setUploading(null)
+      return
+    }
 
     // Update KYC status on profile
     await supabase.from('profiles').update({ kyc_status: 'pending' }).eq('id', userId)
 
+    toast('Document Uploaded', 'Your document has been submitted for KYC review.')
     setUploading(null)
     router.refresh()
   }

@@ -11,11 +11,17 @@ export function LoginForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
   const errorParam = searchParams.get('error')
+  const errorDescription = searchParams.get('error_description')
   const message = searchParams.get('message')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(errorParam === 'auth_callback_error' ? 'Authentication failed. Please try again.' : '')
+  const [error, setError] = useState(
+    errorDescription ||
+      (errorParam === 'auth_callback_error'
+        ? 'Authentication failed or OAuth provider is not enabled in Supabase.'
+        : '')
+  )
   const [loading, setLoading] = useState(false)
   const [socialLoading, setSocialLoading] = useState<string | null>(null)
 

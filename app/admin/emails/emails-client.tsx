@@ -171,7 +171,7 @@ export function AdminEmailsClient({ initialLogs, users }: Props) {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold">{log.subject}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground">To: {log.recipient}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">To: {log.to_email}</p>
                     </div>
                     <span className={`px-2 py-0.5 text-[9px] font-bold uppercase ${
                       log.status === 'sent' ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'
@@ -180,7 +180,7 @@ export function AdminEmailsClient({ initialLogs, users }: Props) {
                     </span>
                   </div>
                   <div className="mt-2 flex justify-between font-mono text-[9px] text-muted-foreground">
-                    <span>Template: {log.template}</span>
+                    <span>Template: {((log.metadata as Record<string, unknown>)?.template as string) || 'Custom'}</span>
                     <span>{new Date(log.created_at).toLocaleString()}</span>
                   </div>
                 </div>

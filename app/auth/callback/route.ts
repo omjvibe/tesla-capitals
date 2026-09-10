@@ -6,6 +6,15 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const type = searchParams.get('type')
   const next = searchParams.get('next') ?? '/dashboard'
+  const errorParam = searchParams.get('error')
+  const errorDesc = searchParams.get('error_description')
+
+  if (errorParam || errorDesc) {
+    const message = errorDesc || (errorParam === 'unsupported_provider' ? 'OAuth provider is not enabled in Supabase.' : 'Authentication failed. Please try again.')
+    return NextResponse.redirect(
+      `${origin}/login?error=${encodeURIComponent(errorParam || 'auth_error')}&error_description=${encodeURIComponent(message)}`
+    )
+  }
 
   if (code) {
     const supabase = await createClient()

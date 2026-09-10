@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, X, Plus, Edit2, Wallet, ArrowDownLeft, ArrowUpRight, DollarSign, ShieldAlert } from 'lucide-react'
+import { Check, X, Plus, Edit2, Wallet, Lock, ShieldAlert } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/toast'
@@ -27,11 +27,17 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
   const [cryptoAddresses, setCryptoAddresses] = useState<CryptoAddress[]>(initialCrypto)
   const [profiles, setProfiles] = useState<Partial<Profile>[]>(initialProfiles)
 
-  // Crypto address form
+  // Crypto address form & PIN state
   const [currency, setCurrency] = useState('')
   const [network, setNetwork] = useState('')
   const [address, setAddress] = useState('')
+  const [editingCryptoId, setEditingCryptoId] = useState<string | null>(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
+  
+  // Admin PIN Authorization
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [adminPin, setAdminPin] = useState('')
+  const [pinError, setPinError] = useState('')
 
   // User balance modal
   const [selectedUser, setSelectedUser] = useState<Partial<Profile> | null>(null)
@@ -45,7 +51,6 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
     const supabase = createClient()
     const { error } = await supabase.from('deposit_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', dep.id)
     if (!error) {
-      // Credit user wallet balance
       const { data: userProf } = await supabase.from('profiles').select('wallet_balance').eq('id', dep.user_id).single()
       const current = Number(userProf?.wallet_balance || 0)
       const newBal = current + Number(dep.amount)
@@ -78,7 +83,6 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
     const supabase = createClient()
     const { error } = await supabase.from('withdrawal_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', w.id)
     if (!error) {
-      // Deduct user wallet balance
       const { data: userProf } = await supabase.from('profiles').select('wallet_balance').eq('id', w.user_id).single()
       const current = Number(userProf?.wallet_balance || 0)
       const newBal = Math.max(0, current - Number(w.amount))
@@ -106,24 +110,60 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
     }
   }
 
-  // Address Actions
-  const handleSaveCryptoAddress = async (e: React.FormEvent) => {
+  // Initiate Crypto Address Save (Triggers PIN Verification Modal)
+  const handleInitiateCryptoSave = (e: React.FormEvent) => {
     e.preventDefault()
+    setAdminPin('')
+    setPinError('')
+    setShowPinModal(true)
+  }
+
+  // Execute Confirmed Crypto Address Save After Admin PIN Check
+  const handleConfirmPinAndSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!adminPin || adminPin.trim().length < 4) {
+      setPinError('Please enter a valid 4-digit Admin Security PIN.')
+      return
+    }
+
     const supabase = createClient()
-    const { data, error } = await supabase.from('crypto_addresses').upsert({
-      currency: currency.toUpperCase(),
-      network,
-      address,
-      is_active: true,
-    }).select().single()
+    let query = supabase.from('crypto_addresses')
+    
+    let result
+    if (editingCryptoId) {
+      result = await query.update({
+        currency: currency.toUpperCase(),
+        network,
+        address,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      }).eq('id', editingCryptoId).select().single()
+    } else {
+      result = await query.upsert({
+        currency: currency.toUpperCase(),
+        network,
+        address,
+        is_active: true,
+      }).select().single()
+    }
+
+    const { data, error } = result
 
     if (!error && data) {
-      setCryptoAddresses(prev => [...prev.filter(c => c.currency !== data.currency), data])
+      setCryptoAddresses(prev => {
+        const filtered = prev.filter(c => c.id !== data.id && c.currency !== data.currency)
+        return [...filtered, data]
+      })
       setShowAddressForm(false)
+      setShowPinModal(false)
+      setEditingCryptoId(null)
       setCurrency('')
       setNetwork('')
       setAddress('')
-      toast('Deposit Address Saved', `Updated deposit address for ${data.currency}.`)
+      toast('Deposit Address Saved', `Successfully updated ${data.currency} deposit wallet.`)
+      router.refresh()
+    } else if (error) {
+      setPinError(error.message)
     }
   }
 
@@ -164,7 +204,7 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
       </div>
 
       {/* Tabs */}
-      <div className="mt-8 flex border-b border-border">
+      <div className="mt-8 flex border-b border-border overflow-x-auto">
         {[
           { id: 'deposits', label: `Pending Deposits (${deposits.filter(d => d.status === 'pending').length})` },
           { id: 'withdrawals', label: `Pending Withdrawals (${withdrawals.filter(w => w.status === 'pending').length})` },
@@ -174,7 +214,7 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id as any)}
-            className={`border-b-2 px-6 py-3 text-xs font-bold transition-colors ${
+            className={`border-b-2 px-6 py-3 text-xs font-bold transition-colors whitespace-nowrap ${
               activeTab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -265,42 +305,124 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
         <div className="mt-8 flex flex-col gap-6">
           <div className="flex justify-between items-center">
             <h3 className="font-mono text-xs uppercase tracking-widest text-primary">Global Deposit Wallets</h3>
-            <button onClick={() => setShowAddressForm(!showAddressForm)} className="flex items-center gap-2 border border-border px-4 py-2 text-xs font-bold hover:border-primary">
-              <Plus size={15} /> Add / Update Address
+            <button
+              onClick={() => {
+                setEditingCryptoId(null)
+                setCurrency('')
+                setNetwork('')
+                setAddress('')
+                setShowAddressForm(!showAddressForm)
+              }}
+              className="flex items-center gap-2 border border-border px-4 py-2 text-xs font-bold hover:border-primary"
+            >
+              <Plus size={15} /> Add New Address
             </button>
           </div>
 
           {showAddressForm && (
-            <form onSubmit={handleSaveCryptoAddress} className="border border-border bg-card p-6 grid gap-4 sm:grid-cols-3">
+            <form onSubmit={handleInitiateCryptoSave} className="border border-border bg-card p-6 grid gap-4 sm:grid-cols-3">
+              <div className="sm:col-span-3 flex justify-between items-center border-b border-border pb-3">
+                <h4 className="text-sm font-bold">{editingCryptoId ? 'Edit Deposit Address' : 'Add Deposit Address'}</h4>
+                <button type="button" onClick={() => setShowAddressForm(false)}><X size={16} /></button>
+              </div>
+
               <label className="flex flex-col gap-1 text-xs font-bold">
                 Currency (e.g. BTC, ETH, USDT)
                 <input value={currency} onChange={e => setCurrency(e.target.value)} required className="h-10 border border-border bg-background px-3 uppercase" />
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold">
-                Network Name (e.g. TRC20, ERC20)
+                Network Name (e.g. TRC20, ERC20, Bitcoin)
                 <input value={network} onChange={e => setNetwork(e.target.value)} required className="h-10 border border-border bg-background px-3" />
               </label>
               <label className="flex flex-col gap-1 text-xs font-bold sm:col-span-3">
                 Deposit Wallet Address
                 <input value={address} onChange={e => setAddress(e.target.value)} required className="h-10 border border-border bg-background px-3 font-mono text-xs" />
               </label>
-              <button type="submit" className="bg-primary px-6 py-3 text-xs font-bold text-primary-foreground sm:w-fit">
-                Save Address
-              </button>
+              
+              <div className="sm:col-span-3 flex gap-3">
+                <button type="submit" className="bg-primary px-6 py-3 text-xs font-bold text-primary-foreground">
+                  {editingCryptoId ? 'Update Address' : 'Save Address'}
+                </button>
+                <button type="button" onClick={() => setShowAddressForm(false)} className="border border-border px-4 py-3 text-xs font-bold">
+                  Cancel
+                </button>
+              </div>
             </form>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
             {cryptoAddresses.map(ca => (
-              <div key={ca.id} className="border border-border bg-card p-5">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-bold text-primary">{ca.currency}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">{ca.network}</span>
+              <div key={ca.id} className="border border-border bg-card p-5 flex flex-col justify-between gap-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm font-bold text-primary">{ca.currency}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{ca.network}</span>
+                  </div>
+                  <p className="mt-3 font-mono text-xs break-all bg-background border border-border p-3">{ca.address}</p>
                 </div>
-                <p className="mt-3 font-mono text-xs break-all bg-background border border-border p-3">{ca.address}</p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setEditingCryptoId(ca.id)
+                      setCurrency(ca.currency)
+                      setNetwork(ca.network)
+                      setAddress(ca.address)
+                      setShowAddressForm(true)
+                    }}
+                    className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary"
+                  >
+                    <Edit2 size={13} /> Edit / Update Address
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+
+          {/* Admin PIN Verification Modal */}
+          {showPinModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+              <form onSubmit={handleConfirmPinAndSaveAddress} className="w-full max-w-sm border border-border bg-card p-6 flex flex-col gap-4">
+                <div className="flex justify-between items-center border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <Lock size={18} className="text-primary" />
+                    <h3 className="text-sm font-bold uppercase tracking-wider">Admin PIN Required</h3>
+                  </div>
+                  <button type="button" onClick={() => setShowPinModal(false)}><X size={18} /></button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Enter your Admin Security PIN to authorize updating the public deposit address for <strong style={{ color: '#ffffff' }}>{currency}</strong>.
+                </p>
+
+                <label className="flex flex-col gap-1 text-xs font-bold">
+                  Security PIN
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={adminPin}
+                    onChange={e => setAdminPin(e.target.value)}
+                    placeholder="Enter 4-digit Admin PIN"
+                    required
+                    autoFocus
+                    className="h-11 border border-border bg-background px-3 font-mono text-center text-lg tracking-[0.5em] outline-none focus:border-primary"
+                  />
+                </label>
+
+                {pinError && (
+                  <p className="text-xs text-primary font-bold">{pinError}</p>
+                )}
+
+                <div className="flex gap-2 mt-2">
+                  <button type="submit" className="bg-primary px-5 py-3 text-xs font-bold text-primary-foreground flex-1">
+                    Authorize & Save
+                  </button>
+                  <button type="button" onClick={() => setShowPinModal(false)} className="border border-border px-4 py-3 text-xs font-bold">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
