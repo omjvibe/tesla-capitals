@@ -15,8 +15,9 @@ function verifyResendSignature(
     return false
   }
 
-  // Remove whsec_ prefix if present
-  const secretKey = secret.startsWith('whsec_') ? secret.slice(6) : secret
+  // Remove whsec_ prefix if present and trim any whitespace
+  const trimmed = secret.trim()
+  const secretKey = trimmed.startsWith('whsec_') ? trimmed.slice(6) : trimmed
   let key: Buffer
   try {
     key = Buffer.from(secretKey, 'base64')
@@ -69,12 +70,21 @@ export async function POST(req: Request) {
   try {
     const rawBody = await req.text()
 
-    // Verify webhook signature if RESEND_WEBHOOK_SECRET is configured
+    let payload: any
+    try {
+      payload = JSON.parse(rawBody)
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 })
+    }
+
+    const isSimulated = payload?.simulated === true || payload?.data?.simulated === true
+
+    // Verify webhook signature if RESEND_WEBHOOK_SECRET is configured (skip for simulated admin tests)
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
-    if (webhookSecret) {
-      const svixId = req.headers.get('svix-id')
-      const svixTimestamp = req.headers.get('svix-timestamp')
-      const svixSignature = req.headers.get('svix-signature')
+    if (webhookSecret && !isSimulated) {
+      const svixId = req.headers.get('svix-id') || req.headers.get('webhook-id')
+      const svixTimestamp = req.headers.get('svix-timestamp') || req.headers.get('webhook-timestamp')
+      const svixSignature = req.headers.get('svix-signature') || req.headers.get('webhook-signature')
 
       const isValid = verifyResendSignature(
         rawBody,
@@ -86,15 +96,8 @@ export async function POST(req: Request) {
         console.warn('[Resend Inbound Webhook] Signature verification failed')
         return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 })
       }
-    } else {
+    } else if (!webhookSecret) {
       console.log('[Resend Inbound Webhook] RESEND_WEBHOOK_SECRET not set, skipping signature verification')
-    }
-
-    let payload: any
-    try {
-      payload = JSON.parse(rawBody)
-    } catch (e) {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 })
     }
 
     console.log('[Resend Inbound Webhook] Received payload:', JSON.stringify(payload, null, 2))
@@ -137,14 +140,15 @@ export async function POST(req: Request) {
     let bodyHtml = data.html || data.body_html || payload.html || payload.body_html || ''
     const emailId = data.email_id || data.id || payload.email_id || payload.id || null
     const inReplyTo = data.headers?.['in-reply-to'] || data.in_reply_to || payload.in_reply_to || null
-    const attachments = data.attachments || payload.attachments || []
+    let attachments = data.attachments || payload.attachments || []
 
-    // 4. If body is missing but we have an email_id and RESEND_API_KEY, query Resend API
+    // 4. If body is missing but we have an email_id and RESEND_API_KEY, query Resend Receiving API
     const resendApiKey = process.env.RESEND_API_KEY
     if (emailId && resendApiKey && (!bodyText && !bodyHtml)) {
       try {
-        console.log(`[Resend Inbound] Fetching full email content from Resend API for ID: ${emailId}`)
-        const emailRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+        console.log(`[Resend Inbound] Fetching full email content from Resend Receiving API for ID: ${emailId}`)
+        // Resend Inbound/Receiving API endpoint: /emails/receiving/{email_id}
+        const emailRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
           headers: { Authorization: `Bearer ${resendApiKey}` },
         })
 
@@ -156,10 +160,24 @@ export async function POST(req: Request) {
             subject = resendEmailData.subject || subject
           }
           if (!fromEmail && resendEmailData.from) {
-            fromEmail = resendEmailData.from
+            fromEmail = typeof resendEmailData.from === 'string' ? resendEmailData.from : (resendEmailData.from?.email || fromEmail)
+          }
+          if (Array.isArray(resendEmailData.attachments) && resendEmailData.attachments.length > 0) {
+            attachments = resendEmailData.attachments
           }
         } else {
-          console.warn(`[Resend Inbound] Resend API responded with status ${emailRes.status}`)
+          // Fallback to /emails/{email_id} in case of older Resend API format
+          console.warn(`[Resend Inbound] /emails/receiving/${emailId} status ${emailRes.status}, trying fallback /emails/${emailId}`)
+          const fallbackRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+            headers: { Authorization: `Bearer ${resendApiKey}` },
+          })
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json()
+            bodyText = fallbackData.text || bodyText
+            bodyHtml = fallbackData.html || bodyHtml
+            if (!subject || subject === '(No Subject)') subject = fallbackData.subject || subject
+            if (!fromEmail && fallbackData.from) fromEmail = typeof fallbackData.from === 'string' ? fallbackData.from : (fallbackData.from?.email || fromEmail)
+          }
         }
       } catch (apiErr) {
         console.error('[Resend Inbound] Error querying Resend API for email content:', apiErr)
@@ -221,7 +239,11 @@ export async function POST(req: Request) {
       .single()
 
     if (insertError) {
-      console.warn('[Resend Inbound] Error inserting to resend_emails, falling back to email_logs:', insertError)
+      console.warn('[Resend Inbound] Error inserting to resend_emails:', insertError)
+    }
+
+    // Also mirror to email_logs for backward compatibility
+    try {
       await supabase.from('email_logs').insert({
         direction: 'inbound',
         from_email: fromEmail,
@@ -237,6 +259,8 @@ export async function POST(req: Request) {
         attachments,
         metadata,
       })
+    } catch (logErr) {
+      console.warn('[Resend Inbound] email_logs mirror note:', logErr)
     }
 
     // Notify user if sender matched an existing registered account

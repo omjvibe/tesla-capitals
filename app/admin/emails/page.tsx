@@ -10,22 +10,31 @@ export default async function AdminEmailsPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/dashboard')
 
-  // Try fetching from resend_emails first, fallback to email_logs
-  let emails = []
-  const { data: resendData, error: resendErr } = await supabase
+  // Fetch from both resend_emails and email_logs, deduplicate by resend_id or id
+  const { data: resendData } = await supabase
     .from('resend_emails')
     .select('*')
     .order('created_at', { ascending: false })
 
-  if (!resendErr && resendData && resendData.length > 0) {
-    emails = resendData
-  } else {
-    const { data: logData } = await supabase
-      .from('email_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-    emails = logData || []
+  const { data: logData } = await supabase
+    .from('email_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  const seenKeys = new Set<string>()
+  const emails: any[] = []
+
+  // Combine both sources
+  for (const item of [...(resendData || []), ...(logData || [])]) {
+    const key = item.resend_id || item.id || `${item.from_email}-${item.created_at}`
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key)
+      emails.push(item)
+    }
   }
+
+  // Sort descending by created_at
+  emails.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const { data: profiles } = await supabase
     .from('profiles')
