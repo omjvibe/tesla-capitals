@@ -41,13 +41,21 @@ export default async function DashboardPage() {
   // Calculate totals
   const investmentTotal = (investmentHoldings || []).reduce((sum, h) => sum + Number(h.current_value), 0)
   const stockTotal = (portfolioHoldings || []).reduce((sum, h) => sum + (Number(h.shares) * Number(h.stock?.price || 0)), 0)
-  const totalBalance = investmentTotal + stockTotal
+  const walletBalance = Number(profile?.wallet_balance || 0)
+  const totalBalance = investmentTotal + stockTotal + walletBalance
   const investedAmount = (investmentHoldings || []).reduce((sum, h) => sum + Number(h.amount), 0)
   const stockCostBasis = (portfolioHoldings || []).reduce((sum, h) => sum + (Number(h.shares) * Number(h.avg_cost)), 0)
-  const allTimeChange = totalBalance - investedAmount - stockCostBasis
+  const allTimeChange = totalBalance - investedAmount - stockCostBasis - walletBalance
   const allTimePercent = (investedAmount + stockCostBasis) > 0
     ? ((allTimeChange / (investedAmount + stockCostBasis)) * 100)
     : 0
+
+  // Estimate daily change from stock price movements
+  const dailyChange = (portfolioHoldings || []).reduce((sum, h) => {
+    const change = Number(h.stock?.change_percent || 0) / 100
+    return sum + (Number(h.shares) * Number(h.stock?.price || 0) * change)
+  }, 0)
+  const dailyPercent = totalBalance > 0 ? (dailyChange / totalBalance) * 100 : 0
 
   return (
     <DashboardClient
@@ -59,9 +67,9 @@ export default async function DashboardPage() {
       stats={{
         totalBalance,
         investedAmount: investedAmount + stockCostBasis,
-        availableCash: 0,
-        dailyChange: 0,
-        dailyChangePercent: 0,
+        availableCash: walletBalance,
+        dailyChange,
+        dailyChangePercent: dailyPercent,
         allTimeChange,
         allTimeChangePercent: allTimePercent,
       }}

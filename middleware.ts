@@ -4,6 +4,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 const publicRoutes = ['/', '/learn', '/about', '/terms', '/privacy', '/risk-disclosure']
 const authRoutes = ['/login', '/signup', '/forgot-password']
 const callbackRoutes = ['/auth/callback', '/auth/confirm']
+const apiRoutes = ['/api/webhooks']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -11,6 +12,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow callback routes unconditionally
   if (callbackRoutes.some(r => pathname.startsWith(r))) {
+    return supabaseResponse
+  }
+
+  // Allow API webhook routes (e.g. Resend inbound) without auth
+  if (apiRoutes.some(r => pathname.startsWith(r))) {
     return supabaseResponse
   }
 
