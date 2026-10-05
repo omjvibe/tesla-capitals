@@ -48,65 +48,99 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
 
   // Deposit Actions
   const handleApproveDeposit = async (dep: DepositRequest) => {
-    const supabase = createClient()
-    const { error } = await supabase.from('deposit_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', dep.id)
-    if (!error) {
-      const { data: userProf } = await supabase.from('profiles').select('wallet_balance').eq('id', dep.user_id).single()
-      const current = Number(userProf?.wallet_balance || 0)
-      const newBal = current + Number(dep.amount)
-
-      await supabase.from('profiles').update({ wallet_balance: newBal }).eq('id', dep.user_id)
-      await supabase.from('transactions').insert({
-        user_id: dep.user_id,
-        type: 'deposit',
-        amount: dep.amount,
-        description: `Approved deposit (${dep.currency})`,
+    try {
+      const res = await fetch('/api/admin/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'approve_deposit',
+          requestId: dep.id,
+          userId: dep.user_id,
+          amount: dep.amount,
+          currency: dep.currency,
+        }),
       })
-
-      setDeposits(prev => prev.map(d => d.id === dep.id ? { ...d, status: 'approved' } : d))
-      toast('Deposit Approved!', `Credited ${fmt(Number(dep.amount))} to user wallet balance.`)
-      router.refresh()
+      const data = await res.json()
+      if (res.ok) {
+        setDeposits(prev => prev.map(d => d.id === dep.id ? { ...d, status: 'approved' } : d))
+        toast('Deposit Approved!', `Credited ${fmt(Number(dep.amount))} to user wallet balance.`)
+        router.refresh()
+      } else {
+        toast('Approval Failed', data.error || 'Failed to approve deposit', 'error')
+      }
+    } catch (err: any) {
+      toast('Error', err.message, 'error')
     }
   }
 
   const handleRejectDeposit = async (id: string) => {
-    const supabase = createClient()
-    const { error } = await supabase.from('deposit_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id)
-    if (!error) {
-      setDeposits(prev => prev.map(d => d.id === id ? { ...d, status: 'rejected' } : d))
-      toast('Deposit Rejected', 'Deposit request marked as rejected.', 'error')
+    try {
+      const res = await fetch('/api/admin/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject_deposit',
+          requestId: id,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setDeposits(prev => prev.map(d => d.id === id ? { ...d, status: 'rejected' } : d))
+        toast('Deposit Rejected', 'Deposit request marked as rejected.', 'error')
+      } else {
+        toast('Rejection Failed', data.error || 'Failed to reject deposit', 'error')
+      }
+    } catch (err: any) {
+      toast('Error', err.message, 'error')
     }
   }
 
   // Withdrawal Actions
   const handleApproveWithdrawal = async (w: WithdrawalRequest) => {
-    const supabase = createClient()
-    const { error } = await supabase.from('withdrawal_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', w.id)
-    if (!error) {
-      const { data: userProf } = await supabase.from('profiles').select('wallet_balance').eq('id', w.user_id).single()
-      const current = Number(userProf?.wallet_balance || 0)
-      const newBal = Math.max(0, current - Number(w.amount))
-
-      await supabase.from('profiles').update({ wallet_balance: newBal }).eq('id', w.user_id)
-      await supabase.from('transactions').insert({
-        user_id: w.user_id,
-        type: 'withdrawal',
-        amount: -Number(w.amount),
-        description: `Approved withdrawal to ${w.destination_address.slice(0, 10)}...`,
+    try {
+      const res = await fetch('/api/admin/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'approve_withdrawal',
+          requestId: w.id,
+          userId: w.user_id,
+          amount: w.amount,
+          destinationAddress: w.destination_address,
+        }),
       })
-
-      setWithdrawals(prev => prev.map(item => item.id === w.id ? { ...item, status: 'approved' } : item))
-      toast('Withdrawal Approved!', `Processed payout of ${fmt(Number(w.amount))}.`)
-      router.refresh()
+      const data = await res.json()
+      if (res.ok) {
+        setWithdrawals(prev => prev.map(item => item.id === w.id ? { ...item, status: 'approved' } : item))
+        toast('Withdrawal Approved!', `Processed payout of ${fmt(Number(w.amount))}.`)
+        router.refresh()
+      } else {
+        toast('Approval Failed', data.error || 'Failed to approve withdrawal', 'error')
+      }
+    } catch (err: any) {
+      toast('Error', err.message, 'error')
     }
   }
 
   const handleRejectWithdrawal = async (id: string) => {
-    const supabase = createClient()
-    const { error } = await supabase.from('withdrawal_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id)
-    if (!error) {
-      setWithdrawals(prev => prev.map(item => item.id === id ? { ...item, status: 'rejected' } : item))
-      toast('Withdrawal Rejected', 'Withdrawal request marked as rejected.', 'error')
+    try {
+      const res = await fetch('/api/admin/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject_withdrawal',
+          requestId: id,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setWithdrawals(prev => prev.map(item => item.id === id ? { ...item, status: 'rejected' } : item))
+        toast('Withdrawal Rejected', 'Withdrawal request marked as rejected.', 'error')
+      } else {
+        toast('Rejection Failed', data.error || 'Failed to reject withdrawal', 'error')
+      }
+    } catch (err: any) {
+      toast('Error', err.message, 'error')
     }
   }
 
@@ -173,23 +207,35 @@ export function AdminWalletClient({ depositRequests: initialDeposits, withdrawal
     if (!selectedUser?.id) return
     setSavingBalance(true)
 
-    const supabase = createClient()
-    const { error } = await supabase.from('profiles').update({
-      wallet_balance: parseFloat(editBalance || '0'),
-      realized_pnl: parseFloat(editRealizedPnl || '0'),
-      unrealized_pnl: parseFloat(editUnrealizedPnl || '0'),
-    }).eq('id', selectedUser.id)
+    try {
+      const res = await fetch('/api/admin/wallet/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_balance',
+          userId: selectedUser.id,
+          wallet_balance: editBalance || '0',
+          realized_pnl: editRealizedPnl || '0',
+          unrealized_pnl: editUnrealizedPnl || '0',
+        }),
+      })
 
-    if (!error) {
-      setProfiles(prev => prev.map(p => p.id === selectedUser.id ? {
-        ...p,
-        wallet_balance: parseFloat(editBalance || '0'),
-        realized_pnl: parseFloat(editRealizedPnl || '0'),
-        unrealized_pnl: parseFloat(editUnrealizedPnl || '0'),
-      } : p))
-      setSelectedUser(null)
-      toast('User Balance Updated', 'Saved new balance and P&L for user.')
-      router.refresh()
+      const data = await res.json()
+      if (res.ok) {
+        setProfiles(prev => prev.map(p => p.id === selectedUser.id ? {
+          ...p,
+          wallet_balance: parseFloat(editBalance || '0'),
+          realized_pnl: parseFloat(editRealizedPnl || '0'),
+          unrealized_pnl: parseFloat(editUnrealizedPnl || '0'),
+        } : p))
+        setSelectedUser(null)
+        toast('User Balance Updated', 'Saved new balance and P&L for user in database.')
+        router.refresh()
+      } else {
+        toast('Failed to Update', data.error || 'Error saving user balance.', 'error')
+      }
+    } catch (err: any) {
+      toast('Error', err.message, 'error')
     }
     setSavingBalance(false)
   }

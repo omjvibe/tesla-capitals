@@ -13,6 +13,22 @@ export default async function WalletPage() {
   const { data: withdrawalRequests } = await supabase.from('withdrawal_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
   const { data: transactions } = await supabase.from('transactions').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
 
+  const { data: investmentHoldings } = await supabase
+    .from('investment_holdings')
+    .select('*, investment:investments(*)')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+
+  const { data: portfolioHoldings } = await supabase
+    .from('portfolio_holdings')
+    .select('*, stock:stocks(*)')
+    .eq('user_id', user.id)
+
+  const investmentTotal = (investmentHoldings || []).reduce((sum, h) => sum + Number(h.current_value || 0), 0)
+  const stockTotal = (portfolioHoldings || []).reduce((sum, h) => sum + (Number(h.shares || 0) * Number(h.stock?.price || 0)), 0)
+  const walletBalance = Number(profile?.wallet_balance || 0)
+  const totalBalance = investmentTotal + stockTotal + walletBalance
+
   return (
     <WalletClient
       profile={profile}
@@ -20,6 +36,9 @@ export default async function WalletPage() {
       depositRequests={depositRequests || []}
       withdrawalRequests={withdrawalRequests || []}
       transactions={transactions || []}
+      totalBalance={totalBalance}
+      investmentTotal={investmentTotal}
+      stockTotal={stockTotal}
     />
   )
 }

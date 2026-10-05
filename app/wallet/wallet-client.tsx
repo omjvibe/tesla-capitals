@@ -82,6 +82,9 @@ interface Props {
   depositRequests: DepositRequest[]
   withdrawalRequests: WithdrawalRequest[]
   transactions: Transaction[]
+  totalBalance?: number
+  investmentTotal?: number
+  stockTotal?: number
 }
 
 export function WalletClient({
@@ -90,6 +93,9 @@ export function WalletClient({
   depositRequests: initialDeposits,
   withdrawalRequests: initialWithdrawals,
   transactions,
+  totalBalance: propTotalBalance,
+  investmentTotal = 0,
+  stockTotal = 0,
 }: Props) {
   const router = useRouter()
   const { toast } = useToast()
@@ -98,23 +104,28 @@ export function WalletClient({
   const [activeTab, setActiveTab] = useState<'overview' | 'deposit' | 'withdraw' | 'swap'>('overview')
   const [expandedCards, setExpandedCards] = useState(false)
   const [showFullCardNumber, setShowFullCardNumber] = useState(false)
+  const [cardView, setCardView] = useState<'total' | 'liquid' | 'invested'>('total')
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   // Real balances & user values
-  const walletBalance = Number(profile.wallet_balance || 0)
-  const realizedPnl = Number(profile.realized_pnl || 0)
-  const unrealizedPnl = Number(profile.unrealized_pnl || 0)
-  const cardHolderName = (profile.full_name || 'Valued Member').toUpperCase()
-  const maskedCardLast4 = profile.id.replace(/-/g, '').slice(0, 4).toUpperCase() || '3123'
+  const liquidCash = Number(profile?.wallet_balance || 0)
+  const totalWealth = (propTotalBalance !== undefined && propTotalBalance > 0)
+    ? propTotalBalance
+    : (liquidCash + investmentTotal + stockTotal)
+  const totalInvested = investmentTotal + stockTotal
+  const realizedPnl = Number(profile?.realized_pnl || 0)
+  const unrealizedPnl = Number(profile?.unrealized_pnl || 0)
+  const cardHolderName = (profile?.full_name || 'Valued Member').toUpperCase()
+  const maskedCardLast4 = profile?.id ? profile.id.replace(/-/g, '').slice(0, 4).toUpperCase() : '3123'
   const virtualCardNumber = showFullCardNumber
     ? `5292 8410 9324 ${maskedCardLast4}`
     : `5292 •••• •••• ${maskedCardLast4}`
 
   // Expiration calculation: derived from user creation year + 3
   const cardExpYear = useMemo(() => {
-    const d = profile.created_at ? new Date(profile.created_at) : new Date()
+    const d = profile?.created_at ? new Date(profile.created_at) : new Date()
     return String((d.getFullYear() + 3) % 100).padStart(2, '0')
-  }, [profile.created_at])
+  }, [profile?.created_at])
 
   // Deposit state
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoAddress | null>(cryptoAddresses[0] || null)
@@ -189,8 +200,8 @@ export function WalletClient({
       return
     }
 
-    if (amt > walletBalance) {
-      toast('Insufficient Balance', `Your available liquid balance is ${fmt(walletBalance)}.`, 'error')
+    if (amt > liquidCash) {
+      toast('Insufficient Balance', `Your available liquid balance is ${fmt(liquidCash)}.`, 'error')
       return
     }
 
@@ -234,7 +245,7 @@ export function WalletClient({
       return
     }
 
-    if (swapFrom === 'USD' && amt > walletBalance) {
+    if (swapFrom === 'USD' && amt > liquidCash) {
       toast('Insufficient Balance', 'Not enough available USD balance for this swap.', 'error')
       return
     }
@@ -349,57 +360,81 @@ export function WalletClient({
 
                 {/* ── 3D Stacked Cards Deck (Matches Reference Design) ── */}
                 <div
-                  className="relative flex-1 cursor-pointer select-none py-2"
-                  onClick={() => setExpandedCards(!expandedCards)}
-                  title="Click to toggle card detail view"
+                  className="relative flex-1 select-none py-2"
+                  title="Click cards to toggle view"
                 >
-                  {/* Card Layer 3 (Deep Background Card) */}
+                  {/* Card Layer 3 (Deep Background Card - Liquid Cash) */}
                   <div
-                    className={`pointer-events-none absolute right-2 top-0 h-48 w-[88%] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 p-5 shadow-md transition-all duration-500 dark:border-white/5 ${
+                    onClick={() => setCardView(cardView === 'liquid' ? 'total' : 'liquid')}
+                    className={`cursor-pointer absolute right-2 top-0 h-48 w-[88%] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-900 p-5 shadow-md transition-all duration-500 dark:border-white/5 ${
                       expandedCards
-                        ? '-translate-y-12 translate-x-4 rotate-6 opacity-70'
-                        : '-translate-y-3 translate-x-4 -rotate-3 opacity-40'
+                        ? '-translate-y-12 translate-x-4 rotate-6 opacity-75 hover:opacity-100'
+                        : '-translate-y-3 translate-x-4 -rotate-3 opacity-40 hover:opacity-60'
                     }`}
                   >
-                    <div className="flex justify-between text-white/50 text-[10px] font-mono">
-                      <span>SECONDARY ESCROW</span>
-                      <span className="font-bold">{fmt(realizedPnl)}</span>
+                    <div className="flex justify-between text-white/70 text-[10px] font-mono">
+                      <span>LIQUID RESERVE</span>
+                      <span className="font-bold text-white">{fmt(liquidCash)}</span>
                     </div>
                   </div>
 
-                  {/* Card Layer 2 (Middle Background Card) */}
+                  {/* Card Layer 2 (Middle Background Card - Invested Capital) */}
                   <div
-                    className={`pointer-events-none absolute right-1 top-2 h-48 w-[92%] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 shadow-lg transition-all duration-500 dark:border-white/5 ${
+                    onClick={() => setCardView(cardView === 'invested' ? 'total' : 'invested')}
+                    className={`cursor-pointer absolute right-1 top-2 h-48 w-[92%] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 to-zinc-950 p-5 shadow-lg transition-all duration-500 dark:border-white/5 ${
                       expandedCards
-                        ? '-translate-y-6 translate-x-2 rotate-3 opacity-90'
-                        : '-translate-y-1.5 translate-x-2 -rotate-1.5 opacity-60'
+                        ? '-translate-y-6 translate-x-2 rotate-3 opacity-90 hover:opacity-100'
+                        : '-translate-y-1.5 translate-x-2 -rotate-1.5 opacity-60 hover:opacity-80'
                     }`}
                   >
-                    <div className="flex justify-between text-white/60 text-[10px] font-mono">
-                      <span>EQUITY SETTLEMENT</span>
-                      <span className="font-bold">{fmt(walletBalance + unrealizedPnl)}</span>
+                    <div className="flex justify-between text-white/70 text-[10px] font-mono">
+                      <span>INVESTED ASSETS</span>
+                      <span className="font-bold text-white">{fmt(totalInvested)}</span>
                     </div>
                   </div>
 
                   {/* Card Layer 1 (Front Featured Metallic Institutional Card) */}
-                  <div className="relative z-10 flex h-52 flex-col justify-between rounded-3xl border border-white/15 bg-gradient-to-br from-zinc-900 via-black to-zinc-950 p-6 text-white shadow-2xl transition-all duration-500 hover:shadow-primary/10">
+                  <div
+                    onClick={() => {
+                      if (expandedCards) setExpandedCards(false)
+                      else setCardView(cardView === 'total' ? 'liquid' : cardView === 'liquid' ? 'invested' : 'total')
+                    }}
+                    className="relative z-10 flex h-52 cursor-pointer flex-col justify-between rounded-3xl border border-white/15 bg-gradient-to-br from-zinc-900 via-black to-zinc-950 p-6 text-white shadow-2xl transition-all duration-500 hover:shadow-primary/10"
+                  >
                     {/* Top Row: Chip, Contactless, Issuer */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <ChipSvg />
                         <ContactlessIcon className="text-white/60" />
                       </div>
-                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                        Institutional Wealth
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-white/80">
+                          {cardView === 'total' ? 'Total Portfolio' : cardView === 'liquid' ? 'Liquid Cash' : 'Invested'}
+                        </span>
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+                          Institutional
+                        </span>
+                      </div>
                     </div>
 
                     {/* Middle: Big Real Balance */}
                     <div className="my-auto pt-2">
-                      <p className="font-mono text-xs uppercase tracking-widest text-white/60">Available Cash</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-mono text-xs uppercase tracking-widest text-white/60">
+                          {cardView === 'total' ? 'Total Account Value' : cardView === 'liquid' ? 'Available Liquid Cash' : 'Active Investments'}
+                        </p>
+                        <span className="text-[10px] text-white/40 hover:text-white/80 transition-colors font-mono">
+                          tap to switch
+                        </span>
+                      </div>
                       <p className="font-mono text-3xl font-extrabold tracking-tight sm:text-4xl text-white">
-                        {fmt(walletBalance)}
+                        {fmt(cardView === 'total' ? totalWealth : cardView === 'liquid' ? liquidCash : totalInvested)}
                       </p>
+                      {cardView === 'total' && (
+                        <p className="mt-1 font-mono text-[10px] text-white/60">
+                          Liquid: {fmt(liquidCash)} • Invested: {fmt(totalInvested)}
+                        </p>
+                      )}
                     </div>
 
                     {/* Bottom Row: Bank Name, Masked Card Number, Brand Logo */}
@@ -638,7 +673,7 @@ export function WalletClient({
                         Request Liquid Payout
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground font-mono">
-                        Available to withdraw: <strong className="text-foreground">{fmt(walletBalance)}</strong>
+                        Available to withdraw: <strong className="text-foreground">{fmt(liquidCash)}</strong>
                       </p>
                     </div>
 
@@ -648,7 +683,7 @@ export function WalletClient({
                         <input
                           type="number"
                           step="0.01"
-                          max={walletBalance}
+                          max={liquidCash}
                           value={withdrawAmount}
                           onChange={e => setWithdrawAmount(e.target.value)}
                           placeholder="1000.00"
@@ -685,7 +720,7 @@ export function WalletClient({
 
                     <button
                       type="submit"
-                      disabled={submittingWithdraw || walletBalance <= 0}
+                      disabled={submittingWithdraw || liquidCash <= 0}
                       className="h-12 w-full rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50"
                     >
                       {submittingWithdraw ? 'Submitting Request...' : 'Submit Withdrawal Request'}
@@ -765,6 +800,36 @@ export function WalletClient({
           <div className="space-y-6 lg:col-span-5">
             {/* Financial Ledger Metrics Cards */}
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <button
+                onClick={() => setCardView('total')}
+                className={`rounded-3xl border bg-card p-5 shadow-sm text-left transition-all hover:border-primary/50 ${
+                  cardView === 'total' ? 'border-primary ring-1 ring-primary/20' : 'border-border'
+                }`}
+              >
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Total Portfolio
+                </p>
+                <p className="mt-2 font-mono text-2xl font-extrabold text-foreground">
+                  {fmt(totalWealth)}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">All assets combined</p>
+              </button>
+
+              <button
+                onClick={() => setCardView('liquid')}
+                className={`rounded-3xl border bg-card p-5 shadow-sm text-left transition-all hover:border-primary/50 ${
+                  cardView === 'liquid' ? 'border-primary ring-1 ring-primary/20' : 'border-border'
+                }`}
+              >
+                <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Liquid Cash
+                </p>
+                <p className="mt-2 font-mono text-2xl font-extrabold text-emerald-500">
+                  {fmt(liquidCash)}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">Available for withdrawal</p>
+              </button>
+
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Realized P&L

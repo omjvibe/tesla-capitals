@@ -380,13 +380,13 @@ export function DashboardClient({
               </div>
 
               {/* Asset Allocation Card */}
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+              <div className="overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   Asset Allocation
                 </p>
                 {allocationData.length > 0 ? (
                   <div className="mt-3 flex items-center gap-3">
-                    <div className="size-16 flex-shrink-0 md:size-20">
+                    <div className="relative h-16 w-16 flex-shrink-0 md:h-20 md:w-20">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
