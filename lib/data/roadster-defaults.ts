@@ -50,7 +50,7 @@ export const ROADSTER_INVESTMENTS: Investment[] = [
 
 export const ROADSTER_AUCTION: Auction = {
   id: 'a0100000-0000-4000-8000-000000000001',
-  product_id: 'p0100000-0000-4000-8000-000000000001',
+  product_id: 'd0100000-0000-4000-8000-000000000001',
   title: '2026 Tesla Roadster SpaceX Package — Founders Chassis #001',
   subtitle: 'SpaceX Cold-Gas Thruster Array • Active Suction Fan Vacuum • 0-60 in <1.0s',
   description:
@@ -84,7 +84,7 @@ export const ROADSTER_AUCTION: Auction = {
 }
 
 export const ROADSTER_PRODUCT: Product = {
-  id: 'p0100000-0000-4000-8000-000000000001',
+  id: 'd0100000-0000-4000-8000-000000000001',
   name: 'Tesla Roadster (SpaceX Thruster Package)',
   category: 'vehicles',
   description:

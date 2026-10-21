@@ -132,7 +132,7 @@ INSERT INTO products (
   specs
 ) VALUES
   (
-    'p0100000-0000-4000-8000-000000000001',
+    'd0100000-0000-4000-8000-000000000001',
     'Tesla Roadster (SpaceX Thruster Package)',
     'vehicles',
     'The pinnacle of extreme performance engineering. Integrates Falcon 9 cold-gas thruster technology and high-vacuum ground-effect fans to redefine physical motion on earth and in the air.',
