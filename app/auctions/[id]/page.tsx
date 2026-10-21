@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AuctionDetailClient } from './detail-client'
+import { ROADSTER_AUCTION } from '@/lib/data/roadster-defaults'
 import type { Auction, AuctionBid, Profile } from '@/types'
 
 export default async function AuctionDetailPage({
@@ -22,11 +23,13 @@ export default async function AuctionDetailPage({
     .single()
 
   // Fetch auction details
-  const { data: auction } = await supabase
+  const { data: dbAuction } = await supabase
     .from('auctions')
     .select('*, product:products(*)')
     .eq('id', id)
     .single()
+
+  const auction = dbAuction || (id === ROADSTER_AUCTION.id ? ROADSTER_AUCTION : null)
 
   if (!auction) {
     notFound()

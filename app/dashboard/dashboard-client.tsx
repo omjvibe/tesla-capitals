@@ -18,6 +18,9 @@ import {
   Car,
   Gift,
   ArrowRight,
+  Flame,
+  Rocket,
+  X,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -128,6 +131,7 @@ export function DashboardClient({
   stats,
 }: Props) {
   const [timeRange, setTimeRange] = useState<'1D' | '1W' | '1M' | '1Y' | 'ALL'>('ALL')
+  const [showRoadsterBanner, setShowRoadsterBanner] = useState(true)
   const firstName = profile?.full_name?.split(' ')[0] || 'Investor'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
@@ -253,6 +257,62 @@ export function DashboardClient({
             </Link>
           </div>
         </div>
+
+        {/* ── Breaking Roadster SpaceX Spotlight Card ─────────── */}
+        {showRoadsterBanner && (
+          <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-r from-red-950/40 via-card to-card p-6 shadow-md transition-all">
+            <div className="pointer-events-none absolute -right-12 -top-12 size-52 rounded-full bg-primary/10 blur-3xl" />
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="relative hidden size-20 shrink-0 overflow-hidden rounded-2xl border border-white/10 sm:block">
+                  <Image
+                    src="/roadster-spacex-hero.jpg"
+                    alt="Roadster Flying Car"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-2 rounded-full bg-primary animate-ping" />
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">
+                      OCTOBER 2026 UNVEIL • NEXT-GEN ROADSTER
+                    </p>
+                  </div>
+                  <h2 className="mt-1 text-lg font-bold text-foreground sm:text-xl">
+                    SpaceX Flying Package: Cold-Gas Thrusters & Active Suction
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                    0–60 in &lt; 0.95s with cold-gas reaction thrusters and active underbody vacuum fans for obstacle hops and wall-scaling grip. Early syndicate allocation & Chassis #001 auction are open to members.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <Link
+                  href="/investments"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 font-mono text-xs font-bold text-primary-foreground shadow-sm hover:brightness-110 active:scale-95 transition-all"
+                >
+                  <Rocket size={14} /> Allocate to Syndicate
+                </Link>
+                <Link
+                  href="/auctions"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 py-2.5 font-mono text-xs font-bold text-orange-400 hover:bg-orange-500/20 active:scale-95 transition-all"
+                >
+                  <Flame size={14} /> Bid on #001
+                </Link>
+                <button
+                  onClick={() => setShowRoadsterBanner(false)}
+                  className="rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Dismiss announcement"
+                  aria-label="Dismiss announcement"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Main Responsive Grid ────────────────────────────── */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

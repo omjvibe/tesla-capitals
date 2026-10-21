@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowUpRight, BarChart3, ChevronRight, Gift, Globe, LineChart, Lock, ShieldCheck, Users, Wallet, Zap } from 'lucide-react'
+import { ArrowUpRight, BarChart3, ChevronRight, Flame, Gift, Globe, LineChart, Lock, ShieldCheck, Users, Wallet, Zap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { LandingThemeToggle } from './landing-client'
 import { AnimatedCounter } from '@/components/ui/animated-counter'
+import { BreakingRoadsterBanner } from '@/components/breaking-roadster-banner'
+import { RoadsterUnveilSection } from '@/components/roadster-unveil-section'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -17,23 +19,29 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-background">
       {/* ── Header ──────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/60 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-10">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+        <BreakingRoadsterBanner />
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3 md:px-10">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/tesla-seeklogo.png" alt="Tesla Capital" width={80} height={16} className="h-4 w-auto brightness-0 invert" />
             <span className="font-mono text-sm font-bold tracking-[0.22em] text-white">CAPITAL</span>
           </Link>
-          <nav className="hidden items-center gap-8 text-xs text-white/60 md:flex">
+          <nav className="hidden items-center gap-7 text-xs text-white/70 md:flex">
+            <a href="#roadster-unveil" className="transition-colors hover:text-white">Roadster</a>
             <Link href="/investments" className="transition-colors hover:text-white">Investments</Link>
+            <Link href="/auctions" className="transition-colors hover:text-white flex items-center gap-1">
+              <Flame size={12} className="text-orange-400" />
+              Auctions
+            </Link>
             <Link href="/stocks" className="transition-colors hover:text-white">Markets</Link>
+            <Link href="/inventory" className="transition-colors hover:text-white">Inventory</Link>
             <Link href="/learn" className="transition-colors hover:text-white">Learn</Link>
-            <Link href="/about" className="transition-colors hover:text-white">About</Link>
             <Link href="/vip" className="transition-colors hover:text-white">VIP</Link>
             <Link href="/login" className="transition-colors hover:text-white">Sign in</Link>
           </nav>
           <div className="flex items-center gap-3">
             <LandingThemeToggle />
-            <Link href="/signup" className="bg-primary px-5 py-2.5 text-xs font-bold text-white transition-all hover:scale-105 active:scale-95">
+            <Link href="/signup" className="bg-primary px-5 py-2 text-xs font-bold text-white transition-all hover:scale-105 active:scale-95">
               Get started
             </Link>
           </div>
@@ -105,6 +113,9 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* ── Next-Gen Roadster SpaceX Flying Car Showcase ── */}
+      <RoadsterUnveilSection />
 
       {/* ── Features Grid ───────────────────────────────── */}
       <section className="border-b border-border">

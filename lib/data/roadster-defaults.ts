@@ -1,0 +1,106 @@
+import type { Investment, Auction, Product } from '@/types'
+
+export const ROADSTER_INVESTMENTS: Investment[] = [
+  {
+    id: 'e0100000-0000-4000-8000-000000000001',
+    name: 'Tesla Roadster SpaceX Propulsion Syndicate',
+    description:
+      'Exclusive private syndicate financing the production scaling of SpaceX-derived composite overwrapped pressure vessels (COPV) and cold-gas thruster manifolds for the next-generation flying Roadster.',
+    category: 'Automotive',
+    min_amount: 2500,
+    duration_months: 18,
+    target_return: 28.5,
+    risk_level: 'moderate',
+    status: 'active',
+    image_url: '/roadster-spacex-hero.jpg',
+    created_at: '2026-10-21T00:00:00Z',
+    updated_at: '2026-10-21T00:00:00Z',
+  },
+  {
+    id: 'e0100000-0000-4000-8000-000000000002',
+    name: 'Active Suction Fan & Ground-Effect R&D Fund',
+    description:
+      'High-alpha development fund commercializing proprietary underbody vacuum turbine technology, generating 4,000+ lbs of downforce for unprecedented cornering grip, wall-scaling, and inverted dynamics.',
+    category: 'Technology',
+    min_amount: 5000,
+    duration_months: 24,
+    target_return: 34.0,
+    risk_level: 'high',
+    status: 'active',
+    image_url: '/roadster-spacex-hero.jpg',
+    created_at: '2026-10-21T00:00:00Z',
+    updated_at: '2026-10-21T00:00:00Z',
+  },
+  {
+    id: 'e0100000-0000-4000-8000-000000000003',
+    name: 'High-Pressure Cold-Gas Supercharger Network (10k PSI)',
+    description:
+      'Global infrastructure buildout deploying automated pneumatic compressors at Tesla Supercharger V4 hubs to recharge Roadster cold-gas thruster tanks in under 90 seconds.',
+    category: 'Energy',
+    min_amount: 1000,
+    duration_months: 12,
+    target_return: 21.0,
+    risk_level: 'low',
+    status: 'active',
+    image_url: '/roadster-spacex-hero.jpg',
+    created_at: '2026-10-21T00:00:00Z',
+    updated_at: '2026-10-21T00:00:00Z',
+  },
+]
+
+export const ROADSTER_AUCTION: Auction = {
+  id: 'a0100000-0000-4000-8000-000000000001',
+  product_id: 'p0100000-0000-4000-8000-000000000001',
+  title: '2026 Tesla Roadster SpaceX Package — Founders Chassis #001',
+  subtitle: 'SpaceX Cold-Gas Thruster Array • Active Suction Fan Vacuum • 0-60 in <1.0s',
+  description:
+    'The historic premier production allocation of the unveiled next-generation Tesla Roadster with the official SpaceX Propulsion Package. Equipped with 10 seamless cold-gas reaction control thrusters nestled behind the license plate and aero contours, paired with dual high-power underbody suction fans allowing short-duration jumps, obstacle hops, and wall-scaling physics. Handover ceremony hosted at Starbase, Texas.',
+  image_url: '/roadster-founders-auction.jpg',
+  gallery_urls: ['/roadster-founders-auction.jpg', '/roadster-spacex-hero.jpg'],
+  starting_price: 250000,
+  reserve_price: 300000,
+  current_bid: 325000,
+  min_bid_increment: 5000,
+  buy_now_price: 500000,
+  starts_at: new Date(Date.now() - 86400000).toISOString(),
+  ends_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+  status: 'live',
+  winner_id: null,
+  winning_bid: null,
+  total_bids: 14,
+  anti_snipe_seconds: 120,
+  specs: {
+    '0-60 mph': '< 1.0s (SpaceX Thruster Assist)',
+    'Top Speed': '250+ mph',
+    'Jump Impulse': 'Up to 6 ft vertical hop / clearance',
+    'Reaction Control': '10 SpaceX Cold-Gas Thrusters (10,000 PSI COPV)',
+    'Downforce': '4,000+ lbs via Active Suction Turbines',
+    'Lateral Grip': '3.2G cornering',
+    'VIN': '7SAXROADSTER000001',
+    'Delivery': 'Starbase Texas Handover Ceremony with Engineers',
+  },
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+}
+
+export const ROADSTER_PRODUCT: Product = {
+  id: 'p0100000-0000-4000-8000-000000000001',
+  name: 'Tesla Roadster (SpaceX Thruster Package)',
+  category: 'vehicles',
+  description:
+    'The pinnacle of extreme performance engineering. Integrates Falcon 9 cold-gas thruster technology and high-vacuum ground-effect fans to redefine physical motion on earth and in the air.',
+  price: 250000,
+  image_url: '/roadster-spacex-hero.jpg',
+  stock_qty: 5,
+  is_available: true,
+  specs: {
+    acceleration: '0-60 mph < 1.0s',
+    top_speed: '250+ mph',
+    range: '620 miles (Electric Only)',
+    propulsion: 'Tri-Motor AWD + 10 Cold-Gas Thrusters',
+    fans: 'Dual 25,000 RPM Vacuum Fans',
+    seating: '4 (2+2 Aero Config)',
+  },
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+}

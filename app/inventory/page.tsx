@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowUpRight, Gavel, Package, Sparkles } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
+import { ROADSTER_PRODUCT } from '@/lib/data/roadster-defaults'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
 
@@ -12,16 +13,21 @@ export default async function InventoryPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: products } = await supabase
+  const { data: dbProducts } = await supabase
     .from('products')
     .select('*')
     .eq('is_available', true)
     .order('category')
     .order('price', { ascending: false })
 
-  const vehicles = (products || []).filter(p => p.category === 'vehicles')
-  const energy = (products || []).filter(p => p.category === 'energy')
-  const accessories = (products || []).filter(p => p.category === 'accessories')
+  const existingIds = new Set((dbProducts || []).map(p => p.id))
+  const products = existingIds.has(ROADSTER_PRODUCT.id)
+    ? (dbProducts || [])
+    : [ROADSTER_PRODUCT, ...(dbProducts || [])]
+
+  const vehicles = products.filter(p => p.category === 'vehicles')
+  const energy = products.filter(p => p.category === 'energy')
+  const accessories = products.filter(p => p.category === 'accessories')
 
   return (
     <PlatformShell>

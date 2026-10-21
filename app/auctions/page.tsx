@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AuctionsClient } from '@/app/auctions/auctions-client'
+import { ROADSTER_AUCTION } from '@/lib/data/roadster-defaults'
 import type { Auction } from '@/types'
 
 export default async function AuctionsPage() {
@@ -14,10 +15,16 @@ export default async function AuctionsPage() {
     .eq('id', user.id)
     .single()
 
-  const { data: auctions } = await supabase
+  const { data: dbAuctions } = await supabase
     .from('auctions')
     .select('*')
     .order('ends_at', { ascending: true })
 
-  return <AuctionsClient initialAuctions={auctions || []} profile={profile} />
+  const existingIds = new Set((dbAuctions || []).map(a => a.id))
+  const auctions = existingIds.has(ROADSTER_AUCTION.id)
+    ? (dbAuctions || [])
+    : [ROADSTER_AUCTION, ...(dbAuctions || [])]
+
+  return <AuctionsClient initialAuctions={auctions} profile={profile} />
 }
+
