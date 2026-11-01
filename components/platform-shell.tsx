@@ -4,12 +4,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gavel, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
+import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gavel, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Rocket, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
 import { useAuth, useTheme } from '@/lib/auth/provider'
 import { GoogleTranslate } from '@/components/google-translate'
 
 const userNav = [
   { href: '/dashboard', label: 'Overview', icon: Home },
+  { href: '/studio', label: '3D Studio', icon: Rocket },
   { href: '/wallet', label: 'Digital Wallet', icon: Wallet },
   { href: '/investments', label: 'Investments', icon: BriefcaseBusiness },
   { href: '/stocks', label: 'Stocks', icon: BarChart3 },

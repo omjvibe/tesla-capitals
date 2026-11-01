@@ -28,6 +28,10 @@ export default async function Home() {
           </Link>
           <nav className="hidden items-center gap-7 text-xs text-white/70 md:flex">
             <a href="#roadster-unveil" className="transition-colors hover:text-white">Roadster</a>
+            <Link href="/studio" className="transition-colors hover:text-white flex items-center gap-1 text-primary">
+              <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+              3D Studio
+            </Link>
             <Link href="/investments" className="transition-colors hover:text-white">Investments</Link>
             <Link href="/auctions" className="transition-colors hover:text-white flex items-center gap-1">
               <Flame size={12} className="text-orange-400" />

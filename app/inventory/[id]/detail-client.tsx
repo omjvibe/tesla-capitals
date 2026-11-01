@@ -7,6 +7,7 @@ import { ArrowLeft, Crown, Package, Sparkles, Wallet } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
 import { isRoadsterProduct } from '@/lib/data/roadster-defaults'
+import { Tesla3DConfigurator } from '@/components/tesla-3d-configurator'
 import type { Product } from '@/types'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
@@ -143,6 +144,28 @@ export function ProductDetailClient({ product, userId }: { product: Product; use
             )}
           </div>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">{product.description}</p>
+
+          {isRoadsterProduct(product.id, product.name) && (
+            <div className="mt-8 border-t border-border pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-widest text-primary font-bold">
+                    Interactive 3D Studio & Paint Visualizer
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Rotate 360°, customize multi-coat finishes, and test cold-gas thruster ignition
+                  </p>
+                </div>
+                <Link
+                  href="/studio"
+                  className="rounded-lg border border-border px-3 py-1.5 font-mono text-xs hover:border-primary hover:text-primary transition-colors"
+                >
+                  Full Screen Studio →
+                </Link>
+              </div>
+              <Tesla3DConfigurator embedded initialColor="ultra-red" />
+            </div>
+          )}
 
           {specs.length > 0 && (
             <div className="mt-8 border-t border-border pt-6">
