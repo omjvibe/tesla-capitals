@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Gavel, Clock, ShieldCheck, ArrowUpRight, Flame, Sparkles, Wallet, AlertCircle, CheckCircle } from 'lucide-react'
+import { Gavel, Clock, ShieldCheck, ArrowUpRight, Flame, Sparkles, Wallet, AlertCircle, CheckCircle, Crown } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { CountdownTimer } from '@/components/ui/countdown-timer'
+import { isRoadsterAuction } from '@/lib/data/roadster-defaults'
 import type { Auction, Profile } from '@/types'
 
 function fmt(n: number) {
@@ -148,6 +149,11 @@ export function AuctionsClient({ initialAuctions, profile }: Props) {
 
                       {/* Status Badges Overlay */}
                       <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                        {isRoadsterAuction(auction.id, auction.title) && (
+                          <span className="flex items-center gap-1 border border-primary/50 bg-primary/20 backdrop-blur px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-red-400">
+                            <Crown size={11} /> 15% VIP Discount
+                          </span>
+                        )}
                         {isLive && (
                           <span className="flex items-center gap-1.5 border border-primary/40 bg-black/80 backdrop-blur px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-primary">
                             <span className="size-1.5 rounded-full bg-primary animate-ping" />
@@ -175,6 +181,7 @@ export function AuctionsClient({ initialAuctions, profile }: Props) {
                       {auction.buy_now_price && isLive && (
                         <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur border border-border px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
                           Buy Now: <strong className="text-foreground">{fmt(Number(auction.buy_now_price))}</strong>
+                          {isRoadsterAuction(auction.id, auction.title) && <span className="text-emerald-400 ml-1 font-bold">(15% OFF)</span>}
                         </div>
                       )}
                     </div>

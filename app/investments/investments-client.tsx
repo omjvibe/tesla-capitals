@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ArrowUpRight, Search, TrendingUp } from 'lucide-react'
+import { ArrowUpRight, Crown, Search, Sparkles, TrendingUp } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
-import type { Investment } from '@/types'
+import { isRoadsterInvestment } from '@/lib/data/roadster-defaults'
+import type { Investment, Profile } from '@/types'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
 
@@ -13,9 +14,10 @@ const categories = ['All', 'Technology', 'Energy', 'Automotive', 'Sustainability
 interface Props {
   investments: Investment[]
   holdings: { investment_id: string; amount: number; current_value: number }[]
+  profile?: Profile | null
 }
 
-export function InvestmentsClient({ investments, holdings }: Props) {
+export function InvestmentsClient({ investments, holdings, profile }: Props) {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
 
@@ -74,8 +76,20 @@ export function InvestmentsClient({ investments, holdings }: Props) {
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map(inv => {
             const userHolding = holdings.find(h => h.investment_id === inv.id)
+            const isRoadster = isRoadsterInvestment(inv.id, inv.name)
             return (
-              <Link key={inv.id} href={`/investments/${inv.id}`} className="group border border-border bg-card p-5 transition-colors hover:border-primary">
+              <Link
+                key={inv.id}
+                href={`/investments/${inv.id}`}
+                className={`group border bg-card p-5 transition-all hover:border-primary ${
+                  isRoadster ? 'border-primary/40 shadow-sm relative overflow-hidden bg-gradient-to-b from-red-950/20 to-card' : 'border-border'
+                }`}
+              >
+                {isRoadster && (
+                  <div className="absolute top-0 right-0 bg-primary px-3 py-0.5 font-mono text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1 rounded-bl">
+                    <Crown size={10} /> 15% VIP Discount
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <div className="grid size-10 place-items-center bg-muted text-primary">
                     <TrendingUp size={20} />
@@ -88,8 +102,11 @@ export function InvestmentsClient({ investments, holdings }: Props) {
                 <p className="mt-2 text-sm leading-6 text-muted-foreground line-clamp-2">{inv.description}</p>
                 <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <div>
-                    <p className="font-mono text-[10px] text-muted-foreground">MIN INVESTMENT</p>
-                    <p className="mt-1 text-sm font-bold">{fmt(Number(inv.min_amount))}</p>
+                    <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                      <span>MIN INVESTMENT</span>
+                      {isRoadster && <span className="text-[9px] text-emerald-500 font-bold">(15% OFF)</span>}
+                    </div>
+                    <p className="mt-1 text-sm font-bold text-foreground font-mono">{fmt(Number(inv.min_amount))}</p>
                   </div>
                   <div>
                     <p className="font-mono text-[10px] text-muted-foreground">TARGET RETURN</p>

@@ -17,10 +17,12 @@ import {
   Zap,
   Info,
   Calendar,
+  Crown,
 } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { CountdownTimer } from '@/components/ui/countdown-timer'
 import { useToast } from '@/components/ui/toast'
+import { isRoadsterAuction } from '@/lib/data/roadster-defaults'
 import type { Auction, AuctionBid, Profile } from '@/types'
 
 function fmt(n: number) {
@@ -186,6 +188,26 @@ export function AuctionDetailClient({ initialAuction, initialBids, profile }: Pr
           )}
         </div>
       </div>
+
+      {isRoadsterAuction(auction.id, auction.title) && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-red-950/30 via-card to-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
+              <Crown size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                <Sparkles size={11} />
+                <span>Premium VIP Allocation Privilege</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">15% Discount on Buy-It-Now Instant Acquisition</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center self-start sm:self-auto rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-bold text-emerald-500">
+            -$75,000 Buy-Now Privilege Applied
+          </span>
+        </div>
+      )}
 
       {/* Main Lot Grid */}
       <div className="grid gap-10 lg:grid-cols-12">

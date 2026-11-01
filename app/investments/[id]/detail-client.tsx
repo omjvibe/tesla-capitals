@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, Wallet } from 'lucide-react'
+import { ArrowLeft, Crown, Sparkles, TrendingUp, Wallet } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/toast'
+import { isRoadsterInvestment } from '@/lib/data/roadster-defaults'
 import type { Investment, InvestmentHolding, Profile } from '@/types'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
@@ -78,6 +79,26 @@ export function InvestmentDetailClient({ investment, holding, profile, userId }:
       <Link href="/investments" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft size={16} /> Back to investments
       </Link>
+
+      {isRoadsterInvestment(investment.id, investment.name) && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-red-950/30 via-card to-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
+              <Crown size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                <Sparkles size={11} />
+                <span>Premium VIP Privilege Activated</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">15% Founder Discount on Minimum Allocation</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center self-start sm:self-auto rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-bold text-emerald-500">
+            15% Discount Applied
+          </span>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <div>

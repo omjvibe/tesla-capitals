@@ -18,7 +18,7 @@ export function BreakingRoadsterBanner() {
         <div className="flex items-center gap-2.5 overflow-hidden">
           <span className="flex size-1.5 rounded-full bg-primary animate-ping shrink-0" />
           <p className="truncate text-white/80 font-sans">
-            <span className="font-semibold text-white">Next-Gen Roadster with SpaceX Thruster Package unveiled:</span> Early allocation syndicates & Chassis #001 auction are live.
+            <span className="font-semibold text-white">Next-Gen Roadster with SpaceX Thruster Package:</span> Premium VIP Exclusive ($2k+) with 15% member discount.
           </p>
         </div>
 

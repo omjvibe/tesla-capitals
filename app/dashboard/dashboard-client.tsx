@@ -34,6 +34,7 @@ import {
   Cell,
 } from 'recharts'
 import { PlatformShell } from '@/components/platform-shell'
+import { isPremiumVip } from '@/lib/data/roadster-defaults'
 import type { Profile, InvestmentHolding, PortfolioHolding, Stock, Transaction, DashboardStats } from '@/types'
 
 function fmt(n: number) {
@@ -258,8 +259,8 @@ export function DashboardClient({
           </div>
         </div>
 
-        {/* ── Breaking Roadster SpaceX Spotlight Card ─────────── */}
-        {showRoadsterBanner && (
+        {/* ── Breaking Roadster SpaceX Spotlight Card (Premium VIP Only) ─────────── */}
+        {isPremiumVip(profile) && showRoadsterBanner && (
           <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-r from-red-950/40 via-card to-card p-6 shadow-md transition-all">
             <div className="pointer-events-none absolute -right-12 -top-12 size-52 rounded-full bg-primary/10 blur-3xl" />
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between relative z-10">
@@ -276,14 +277,14 @@ export function DashboardClient({
                   <div className="flex items-center gap-2">
                     <span className="flex size-2 rounded-full bg-primary animate-ping" />
                     <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">
-                      OCTOBER 2026 UNVEIL • NEXT-GEN ROADSTER
+                      PREMIUM VIP EXCLUSIVE • 15% DISCOUNT UNLOCKED
                     </p>
                   </div>
                   <h2 className="mt-1 text-lg font-bold text-foreground sm:text-xl">
-                    SpaceX Flying Package: Cold-Gas Thrusters & Active Suction
+                    Tesla Flying Roadster (SpaceX Package) Syndicate & Chassis #001
                   </h2>
                   <p className="mt-1 text-xs text-muted-foreground max-w-2xl leading-relaxed">
-                    0–60 in &lt; 0.95s with cold-gas reaction thrusters and active underbody vacuum fans for obstacle hops and wall-scaling grip. Early syndicate allocation & Chassis #001 auction are open to members.
+                    0–60 in &lt; 0.95s with cold-gas reaction thrusters and active suction fans. Your Platinum/Premium VIP privilege unlocks an exclusive 15% discount on syndicate allocations & vehicle purchase.
                   </p>
                 </div>
               </div>
@@ -293,7 +294,7 @@ export function DashboardClient({
                   href="/investments"
                   className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 font-mono text-xs font-bold text-primary-foreground shadow-sm hover:brightness-110 active:scale-95 transition-all"
                 >
-                  <Rocket size={14} /> Allocate to Syndicate
+                  <Rocket size={14} /> Allocate with 15% Off
                 </Link>
                 <Link
                   href="/auctions"

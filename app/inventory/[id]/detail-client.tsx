@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Package, Wallet } from 'lucide-react'
+import { ArrowLeft, Crown, Package, Sparkles, Wallet } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { createClient } from '@/lib/supabase/client'
+import { isRoadsterProduct } from '@/lib/data/roadster-defaults'
 import type { Product } from '@/types'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
@@ -103,6 +104,26 @@ export function ProductDetailClient({ product, userId }: { product: Product; use
         <ArrowLeft size={16} /> Back to inventory
       </Link>
 
+      {isRoadsterProduct(product.id, product.name) && (
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-red-950/30 via-card to-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
+              <Crown size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                <Sparkles size={11} />
+                <span>Premium VIP Member Privilege</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">15% Vehicle Purchase Discount Active</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center self-start sm:self-auto rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-bold text-emerald-500">
+            -$37,500 VIP Savings Applied
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <div>
           <div className="flex items-start gap-4">
@@ -113,7 +134,14 @@ export function ProductDetailClient({ product, userId }: { product: Product; use
             </div>
           </div>
 
-          <p className="mt-6 text-3xl font-bold">{fmt(Number(product.price))}</p>
+          <div className="mt-6 flex flex-wrap items-baseline gap-3">
+            <p className="text-3xl font-bold font-mono">{fmt(Number(product.price))}</p>
+            {isRoadsterProduct(product.id, product.name) && (
+              <span className="font-mono text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                15% VIP OFF (Original: {fmt(250000)})
+              </span>
+            )}
+          </div>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">{product.description}</p>
 
           {specs.length > 0 && (

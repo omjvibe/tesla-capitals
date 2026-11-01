@@ -15,15 +15,15 @@ export function RoadsterUnveilSection() {
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 md:px-10">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-primary">
             <span className="size-1.5 rounded-full bg-primary animate-ping" />
-            October 2026 • SpaceX Package
+            October 2026 • Premium VIP Privilege • 15% Discount
           </div>
           <h2 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl text-white">
             Flight meets the road.
           </h2>
           <p className="mt-4 text-base sm:text-lg text-white/70 leading-relaxed max-w-2xl">
-            SpaceX-derived cold-gas thrusters and high-vacuum ground-effect fans allow short-duration hops, wall-scaling grip, and sub-1.0s acceleration.
+            SpaceX-derived cold-gas thrusters and high-vacuum ground-effect fans allow short-duration hops, wall-scaling grip, and sub-1.0s acceleration. Exclusively available to Platinum & Premium VIP members ($2,000+) with a 15% allocation discount.
           </p>
         </div>
 

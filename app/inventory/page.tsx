@@ -4,7 +4,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowUpRight, Gavel, Package, Sparkles } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
-import { ROADSTER_PRODUCT } from '@/lib/data/roadster-defaults'
+import {
+  ROADSTER_PRODUCT,
+  isPremiumVip,
+  isRoadsterProduct,
+  applyRoadsterDiscount,
+} from '@/lib/data/roadster-defaults'
+import { Crown } from 'lucide-react'
 
 function fmt(n: number) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n) }
 
@@ -13,6 +19,12 @@ export default async function InventoryPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
   const { data: dbProducts } = await supabase
     .from('products')
     .select('*')
@@ -20,10 +32,27 @@ export default async function InventoryPage() {
     .order('category')
     .order('price', { ascending: false })
 
-  const existingIds = new Set((dbProducts || []).map(p => p.id))
-  const products = existingIds.has(ROADSTER_PRODUCT.id)
-    ? (dbProducts || [])
-    : [ROADSTER_PRODUCT, ...(dbProducts || [])]
+  const userIsPremiumVip = isPremiumVip(profile)
+
+  let products = (dbProducts || [])
+
+  if (userIsPremiumVip) {
+    // Merge Roadster product with 15% VIP discount applied
+    const existingIds = new Set(products.map(p => p.id))
+    const missingRoadster = existingIds.has(ROADSTER_PRODUCT.id) ? [] : [ROADSTER_PRODUCT]
+    products = [...missingRoadster, ...products].map(p => {
+      if (isRoadsterProduct(p.id, p.name)) {
+        return {
+          ...p,
+          price: applyRoadsterDiscount(Number(p.price)),
+        }
+      }
+      return p
+    })
+  } else {
+    // Non-premium VIP members do not see the flying car deal
+    products = products.filter(p => !isRoadsterProduct(p.id, p.name))
+  }
 
   const vehicles = products.filter(p => p.category === 'vehicles')
   const energy = products.filter(p => p.category === 'energy')
@@ -63,23 +92,41 @@ export default async function InventoryPage() {
             <section className="mt-8">
               <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Vehicles</p>
               <div className="mt-4 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                {vehicles.map(p => (
-                  <Link key={p.id} href={`/inventory/${p.id}`} className="group border border-border bg-card p-5 transition-all hover:border-primary hover:shadow-xl">
-                    {p.image_url ? (
-                      <div className="relative h-48 w-full overflow-hidden border border-border bg-background mb-4">
-                        <Image src={p.image_url} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-                      </div>
-                    ) : (
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="grid size-10 place-items-center bg-muted text-primary"><Package size={20} /></div>
-                        {p.stock_qty <= 5 && p.stock_qty > 0 && (
-                          <span className="bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">LOW STOCK</span>
+                {vehicles.map(p => {
+                  const isRoadster = isRoadsterProduct(p.id, p.name)
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/inventory/${p.id}`}
+                      className={`group border bg-card p-5 transition-all hover:border-primary hover:shadow-xl relative overflow-hidden ${
+                        isRoadster ? 'border-primary/40 bg-gradient-to-b from-red-950/20 to-card' : 'border-border'
+                      }`}
+                    >
+                      {isRoadster && (
+                        <div className="absolute top-0 right-0 bg-primary px-3 py-0.5 font-mono text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1 rounded-bl z-10">
+                          <Crown size={10} /> 15% VIP Discount
+                        </div>
+                      )}
+                      {p.image_url ? (
+                        <div className="relative h-48 w-full overflow-hidden border border-border bg-background mb-4">
+                          <Image src={p.image_url} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                        </div>
+                      ) : (
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="grid size-10 place-items-center bg-muted text-primary"><Package size={20} /></div>
+                          {p.stock_qty <= 5 && p.stock_qty > 0 && (
+                            <span className="bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">LOW STOCK</span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-lg font-bold">{p.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                      <div className="mt-4 flex items-baseline gap-2">
+                        <p className="text-2xl font-bold font-mono">{fmt(Number(p.price))}</p>
+                        {isRoadster && (
+                          <span className="font-mono text-xs text-emerald-500 font-bold">(15% VIP OFF)</span>
                         )}
                       </div>
-                    )}
-                    <p className="text-lg font-bold">{p.name}</p>
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
-                    <p className="mt-4 text-2xl font-bold">{fmt(Number(p.price))}</p>
                     {p.specs && typeof p.specs === 'object' && (
                       <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4">
                         {Object.entries(p.specs as Record<string, string>).slice(0, 4).map(([k, v]) => (
@@ -95,7 +142,7 @@ export default async function InventoryPage() {
                       <ArrowUpRight size={16} className="text-primary opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   </Link>
-                ))}
+                )})}
               </div>
             </section>
           )}
