@@ -21,14 +21,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden. Admin credentials required.' }, { status: 403 })
     }
 
-    const adminSupabase = createAdminClient()
+    const db = createAdminClient()
 
-    const { data: rawDocuments, error: docsError } = await adminSupabase
+    const { data: rawDocuments, error: docsError } = await db
       .from('kyc_documents')
-      .select('*, user:profiles!user_id(id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier)')
+      .select('*')
       .order('created_at', { ascending: false })
 
-    const { data: users, error: usersError } = await adminSupabase
+    const { data: users, error: usersError } = await db
       .from('profiles')
       .select('id, email, full_name, avatar_url, role, vip_tier, kyc_status, is_kyc_mandated, created_at, updated_at')
       .order('email', { ascending: true })
@@ -42,7 +42,7 @@ export async function GET() {
     const usersMap = new Map((users || []).map(u => [u.id, u]))
     const documents = (rawDocuments || []).map(doc => ({
       ...doc,
-      user: doc.user || usersMap.get(doc.user_id) || null
+      user: usersMap.get(doc.user_id) || null
     }))
 
     return NextResponse.json({ documents, users: users || [] })
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing action parameter.' }, { status: 400 })
     }
 
-    const adminSupabase = createAdminClient()
+    const db = createAdminClient()
 
     // ────────────────────────────────────────────────────────────
     // ACTION: CREATE KYC DOCUMENT
@@ -125,10 +125,10 @@ export async function POST(req: Request) {
         reviewed_at: status !== 'pending' ? now : null,
       }
 
-      const { data: createdDoc, error: insertError } = await adminSupabase
+      const { data: createdDoc, error: insertError } = await db
         .from('kyc_documents')
         .insert(insertRecord)
-        .select('*, user:profiles!user_id(id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier)')
+        .select('*')
         .single()
 
       if (insertError) {
@@ -137,7 +137,7 @@ export async function POST(req: Request) {
 
       // Sync user profile KYC status if requested
       if (sync_profile && ['approved', 'rejected', 'pending'].includes(status)) {
-        await adminSupabase
+        await db
           .from('profiles')
           .update({ kyc_status: status })
           .eq('id', user_id)
@@ -145,26 +145,21 @@ export async function POST(req: Request) {
 
       // Mandate toggle if provided
       if (typeof is_kyc_mandated === 'boolean') {
-        await adminSupabase
+        await db
           .from('profiles')
           .update({ is_kyc_mandated })
           .eq('id', user_id)
       }
 
-      // Fetch user profile if join was null
-      let userObj = createdDoc?.user
-      if (!userObj) {
-        const { data: u } = await adminSupabase
-          .from('profiles')
-          .select('id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier')
-          .eq('id', user_id)
-          .single()
-        userObj = u
-      }
+      const { data: userProfile } = await db
+        .from('profiles')
+        .select('id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier')
+        .eq('id', user_id)
+        .single()
 
       return NextResponse.json({
         success: true,
-        document: { ...createdDoc, user: userObj }
+        document: { ...createdDoc, user: userProfile || null }
       })
     }
 
@@ -204,11 +199,11 @@ export async function POST(req: Request) {
         }
       }
 
-      const { data: updatedDoc, error: updateError } = await adminSupabase
+      const { data: updatedDoc, error: updateError } = await db
         .from('kyc_documents')
         .update(updates)
         .eq('id', id)
-        .select('*, user:profiles!user_id(id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier)')
+        .select('*')
         .single()
 
       if (updateError) {
@@ -217,25 +212,25 @@ export async function POST(req: Request) {
 
       const targetUserId = user_id || updatedDoc?.user_id
       if (sync_profile && targetUserId && status) {
-        await adminSupabase
+        await db
           .from('profiles')
           .update({ kyc_status: status })
           .eq('id', targetUserId)
       }
 
-      let userObj = updatedDoc?.user
-      if (!userObj && targetUserId) {
-        const { data: u } = await adminSupabase
+      let userProfile = null
+      if (targetUserId) {
+        const { data: u } = await db
           .from('profiles')
           .select('id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier')
           .eq('id', targetUserId)
           .single()
-        userObj = u
+        userProfile = u
       }
 
       return NextResponse.json({
         success: true,
-        document: { ...updatedDoc, user: userObj }
+        document: { ...updatedDoc, user: userProfile }
       })
     }
 
@@ -260,11 +255,11 @@ export async function POST(req: Request) {
         updates.admin_notes = admin_notes ? String(admin_notes).trim() : null
       }
 
-      const { data: doc, error: docError } = await adminSupabase
+      const { data: doc, error: docError } = await db
         .from('kyc_documents')
         .update(updates)
         .eq('id', id)
-        .select('*, user:profiles!user_id(id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier)')
+        .select('*')
         .single()
 
       if (docError) {
@@ -273,25 +268,25 @@ export async function POST(req: Request) {
 
       const targetUserId = user_id || doc?.user_id
       if (targetUserId) {
-        await adminSupabase
+        await db
           .from('profiles')
           .update({ kyc_status: status })
           .eq('id', targetUserId)
       }
 
-      let userObj = doc?.user
-      if (!userObj && targetUserId) {
-        const { data: u } = await adminSupabase
+      let userProfile = null
+      if (targetUserId) {
+        const { data: u } = await db
           .from('profiles')
           .select('id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier')
           .eq('id', targetUserId)
           .single()
-        userObj = u
+        userProfile = u
       }
 
       return NextResponse.json({
         success: true,
-        document: { ...doc, user: userObj }
+        document: { ...doc, user: userProfile }
       })
     }
 
@@ -307,7 +302,7 @@ export async function POST(req: Request) {
 
       let targetUserId = user_id
       if (!targetUserId) {
-        const { data: existing } = await adminSupabase
+        const { data: existing } = await db
           .from('kyc_documents')
           .select('user_id')
           .eq('id', id)
@@ -315,7 +310,7 @@ export async function POST(req: Request) {
         targetUserId = existing?.user_id
       }
 
-      const { error: deleteError } = await adminSupabase
+      const { error: deleteError } = await db
         .from('kyc_documents')
         .delete()
         .eq('id', id)
@@ -326,7 +321,7 @@ export async function POST(req: Request) {
 
       let updatedProfileStatus = null
       if (reset_profile_if_no_docs && targetUserId) {
-        const { data: remaining } = await adminSupabase
+        const { data: remaining } = await db
           .from('kyc_documents')
           .select('id, status')
           .eq('user_id', targetUserId)
@@ -337,7 +332,7 @@ export async function POST(req: Request) {
 
         const newStatus = hasApproved ? 'approved' : hasPending ? 'pending' : hasRejected ? 'rejected' : 'not_started'
         
-        await adminSupabase
+        await db
           .from('profiles')
           .update({ kyc_status: newStatus })
           .eq('id', targetUserId)
@@ -378,7 +373,7 @@ export async function POST(req: Request) {
         updates.is_kyc_mandated = is_kyc_mandated
       }
 
-      const { data: updatedProfile, error: profileError } = await adminSupabase
+      const { data: updatedProfile, error: profileError } = await db
         .from('profiles')
         .update(updates)
         .eq('id', user_id)

@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import {
   ShieldCheck,
   ShieldAlert,
-  ShieldX,
-  Shield,
   Plus,
   Edit2,
   Trash2,
@@ -18,7 +16,6 @@ import {
   ExternalLink,
   FileText,
   Upload,
-  UserRound,
   RefreshCw,
   Clock,
   CheckCircle2,
@@ -26,7 +23,7 @@ import {
   AlertCircle,
   Copy,
   CheckCheck,
-  Download,
+  Shield,
   Users,
   FileCheck
 } from 'lucide-react'
@@ -184,7 +181,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
   }
 
   // ────────────────────────────────────────────────────────────
-  // CRUD OPERATIONS
+  // DIRECT DATABASE CRUD OPERATIONS
   // ────────────────────────────────────────────────────────────
 
   // 1. CREATE KYC DOCUMENT
@@ -257,29 +254,67 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         return
       }
 
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create',
-          payload: {
-            user_id: createUserId,
-            doc_type: createDocType,
-            file_url: finalFileUrl,
-            status: createStatus,
-            admin_notes: createAdminNotes,
-            sync_profile: createSyncProfile,
-            is_kyc_mandated: createMandateKyc,
-          }
-        })
-      })
+      const supabase = createClient()
+      const now = new Date().toISOString()
+      const isPending = createStatus === 'pending'
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create KYC document.')
+      // Direct insert into Supabase database
+      const { data: insertedDoc, error: insertError } = await supabase
+        .from('kyc_documents')
+        .insert({
+          user_id: createUserId,
+          doc_type: createDocType,
+          file_url: finalFileUrl,
+          status: createStatus,
+          admin_notes: createAdminNotes ? createAdminNotes.trim() : null,
+          reviewed_by: isPending ? null : adminId,
+          reviewed_at: isPending ? null : now,
+        })
+        .select()
+        .single()
+
+      let newDoc: KycDocument
+
+      if (insertError) {
+        // Fallback to server API if needed
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            payload: {
+              user_id: createUserId,
+              doc_type: createDocType,
+              file_url: finalFileUrl,
+              status: createStatus,
+              admin_notes: createAdminNotes,
+              sync_profile: createSyncProfile,
+              is_kyc_mandated: createMandateKyc,
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || insertError.message)
+        newDoc = apiData.document
+      } else {
+        newDoc = insertedDoc as KycDocument
+
+        // Sync profile directly
+        if (createSyncProfile) {
+          await supabase
+            .from('profiles')
+            .update({ kyc_status: createStatus })
+            .eq('id', createUserId)
+        }
+
+        if (createMandateKyc !== undefined) {
+          await supabase
+            .from('profiles')
+            .update({ is_kyc_mandated: createMandateKyc })
+            .eq('id', createUserId)
+        }
       }
 
-      const newDoc: KycDocument = data.document
       const attachedUser = usersMap.get(createUserId)
       newDoc.user = newDoc.user || attachedUser
 
@@ -299,7 +334,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         } : u))
       }
 
-      toast('KYC Record Created', `Successfully created ${DOC_TYPE_LABELS[createDocType]} for ${attachedUser?.full_name || attachedUser?.email || createUserId}.`)
+      toast('KYC Record Created', `Successfully recorded ${DOC_TYPE_LABELS[createDocType]} in database.`)
       setShowCreateModal(false)
       router.refresh()
     } catch (err: unknown) {
@@ -341,29 +376,58 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         return
       }
 
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update',
-          payload: {
-            id: editingDoc.id,
-            user_id: editingDoc.user_id,
-            doc_type: editDocType,
-            file_url: finalFileUrl,
-            status: editStatus,
-            admin_notes: editAdminNotes,
-            sync_profile: editSyncProfile,
-          }
-        })
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update document.')
+      const supabase = createClient()
+      const isPending = editStatus === 'pending'
+      const updateData: Record<string, unknown> = {
+        doc_type: editDocType,
+        file_url: finalFileUrl,
+        status: editStatus,
+        admin_notes: editAdminNotes ? editAdminNotes.trim() : null,
+        reviewed_by: isPending ? null : adminId,
+        reviewed_at: isPending ? null : new Date().toISOString(),
       }
 
-      const updatedDoc: KycDocument = data.document
+      // Direct update to Supabase database
+      const { data: updatedDocData, error: updateError } = await supabase
+        .from('kyc_documents')
+        .update(updateData)
+        .eq('id', editingDoc.id)
+        .select()
+        .single()
+
+      let updatedDoc: KycDocument
+
+      if (updateError) {
+        // Fallback to server API
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            payload: {
+              id: editingDoc.id,
+              user_id: editingDoc.user_id,
+              doc_type: editDocType,
+              file_url: finalFileUrl,
+              status: editStatus,
+              admin_notes: editAdminNotes,
+              sync_profile: editSyncProfile,
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || updateError.message)
+        updatedDoc = apiData.document
+      } else {
+        updatedDoc = updatedDocData as KycDocument
+        if (editSyncProfile) {
+          await supabase
+            .from('profiles')
+            .update({ kyc_status: editStatus })
+            .eq('id', editingDoc.user_id)
+        }
+      }
+
       const attachedUser = usersMap.get(editingDoc.user_id)
       updatedDoc.user = updatedDoc.user || attachedUser
 
@@ -380,7 +444,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         } : u))
       }
 
-      toast('KYC Document Updated', `Updated ${DOC_TYPE_LABELS[editDocType]} record.`)
+      toast('KYC Document Updated', `Saved changes to ${DOC_TYPE_LABELS[editDocType]} in database.`)
       setEditingDoc(null)
       router.refresh()
     } catch (err: unknown) {
@@ -395,26 +459,50 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
   const handleQuickReview = async (docId: string, userId: string, status: 'approved' | 'rejected' | 'pending') => {
     setLoadingAction(docId)
     try {
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'quick_review',
-          payload: {
-            id: docId,
-            user_id: userId,
-            status,
-            admin_notes: status === 'approved' ? 'Approved by Admin' : status === 'rejected' ? 'Rejected by Admin' : null
-          }
-        })
-      })
+      const supabase = createClient()
+      const isPending = status === 'pending'
+      const note = status === 'approved' ? 'Approved by Admin' : status === 'rejected' ? 'Rejected by Admin' : null
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update review status.')
+      const { data: updatedDocData, error: reviewError } = await supabase
+        .from('kyc_documents')
+        .update({
+          status,
+          reviewed_by: isPending ? null : adminId,
+          reviewed_at: isPending ? null : new Date().toISOString(),
+          admin_notes: note,
+        })
+        .eq('id', docId)
+        .select()
+        .single()
+
+      let updatedDoc: KycDocument
+
+      if (reviewError) {
+        // Fallback to server API
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'quick_review',
+            payload: {
+              id: docId,
+              user_id: userId,
+              status,
+              admin_notes: note,
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || reviewError.message)
+        updatedDoc = apiData.document
+      } else {
+        updatedDoc = updatedDocData as KycDocument
+        await supabase
+          .from('profiles')
+          .update({ kyc_status: status })
+          .eq('id', userId)
       }
 
-      const updatedDoc: KycDocument = data.document
       const attachedUser = usersMap.get(userId)
       updatedDoc.user = updatedDoc.user || attachedUser
 
@@ -427,7 +515,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
 
       toast(
         status === 'approved' ? 'KYC Approved' : status === 'rejected' ? 'KYC Rejected' : 'KYC Reset to Pending',
-        `Document for ${attachedUser?.full_name || attachedUser?.email || userId} is now ${status}.`
+        `Database updated: ${attachedUser?.full_name || attachedUser?.email || userId} is now ${status}.`
       )
       router.refresh()
     } catch (err: unknown) {
@@ -449,30 +537,58 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
     setIsDeleting(true)
 
     try {
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'delete',
-          payload: {
-            id: deletingDoc.id,
-            user_id: deletingDoc.user_id,
-            reset_profile_if_no_docs: deleteResetProfile
-          }
-        })
-      })
+      const supabase = createClient()
+      const { error: deleteError } = await supabase
+        .from('kyc_documents')
+        .delete()
+        .eq('id', deletingDoc.id)
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete document.')
+      let updatedProfileStatus: KycStatus | null = null
+
+      if (deleteError) {
+        // Fallback to server API
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete',
+            payload: {
+              id: deletingDoc.id,
+              user_id: deletingDoc.user_id,
+              reset_profile_if_no_docs: deleteResetProfile
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || deleteError.message)
+        updatedProfileStatus = apiData.updatedProfileStatus
+      } else {
+        if (deleteResetProfile) {
+          const { data: remaining } = await supabase
+            .from('kyc_documents')
+            .select('id, status')
+            .eq('user_id', deletingDoc.user_id)
+
+          const hasApproved = remaining?.some(d => d.status === 'approved')
+          const hasPending = remaining?.some(d => d.status === 'pending')
+          const hasRejected = remaining?.some(d => d.status === 'rejected')
+          const newStatus: KycStatus = hasApproved ? 'approved' : hasPending ? 'pending' : hasRejected ? 'rejected' : 'not_started'
+
+          await supabase
+            .from('profiles')
+            .update({ kyc_status: newStatus })
+            .eq('id', deletingDoc.user_id)
+
+          updatedProfileStatus = newStatus
+        }
       }
 
       setDocs(prev => prev.filter(d => d.id !== deletingDoc.id))
 
-      if (data.updatedProfileStatus) {
+      if (updatedProfileStatus) {
         setUsers(prev => prev.map(u => u.id === deletingDoc.user_id ? {
           ...u,
-          kyc_status: data.updatedProfileStatus
+          kyc_status: updatedProfileStatus as KycStatus
         } : u))
       }
 
@@ -480,7 +596,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         setPreviewDoc(null)
       }
 
-      toast('KYC Document Deleted', `Document removed. User status: ${data.updatedProfileStatus || 'unchanged'}`)
+      toast('KYC Document Deleted', `Record deleted from database. Member status: ${updatedProfileStatus || 'unchanged'}`)
       setDeletingDoc(null)
       router.refresh()
     } catch (err: unknown) {
@@ -504,25 +620,39 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
 
     setIsUpdatingUser(true)
     try {
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_user_kyc',
-          payload: {
-            user_id: userStatusModal.id,
-            kyc_status: targetUserStatus,
-            is_kyc_mandated: targetUserMandated
-          }
+      const supabase = createClient()
+      const { data: updatedProfileData, error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          kyc_status: targetUserStatus,
+          is_kyc_mandated: targetUserMandated,
         })
-      })
+        .eq('id', userStatusModal.id)
+        .select()
+        .single()
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update user KYC status.')
+      let updatedProfile: Profile
+
+      if (profileError) {
+        // Fallback to server API
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_user_kyc',
+            payload: {
+              user_id: userStatusModal.id,
+              kyc_status: targetUserStatus,
+              is_kyc_mandated: targetUserMandated
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || profileError.message)
+        updatedProfile = apiData.profile
+      } else {
+        updatedProfile = updatedProfileData as Profile
       }
-
-      const updatedProfile: Profile = data.profile
 
       setUsers(prev => prev.map(u => u.id === userStatusModal.id ? { ...u, ...updatedProfile } : u))
       setDocs(prev => prev.map(d => d.user_id === userStatusModal.id ? {
@@ -530,7 +660,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
         user: { ...d.user, ...updatedProfile } as Profile
       } : d))
 
-      toast('User KYC Updated', `${userStatusModal.full_name || userStatusModal.email} verification set to ${targetUserStatus.toUpperCase()}.`)
+      toast('User KYC Updated', `Database updated: ${userStatusModal.full_name || userStatusModal.email} set to ${targetUserStatus.toUpperCase()}.`)
       setUserStatusModal(null)
       router.refresh()
     } catch (err: unknown) {
@@ -545,23 +675,31 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
   const handleToggleMandate = async (userId: string, current: boolean) => {
     setLoadingAction(`mandate_${userId}`)
     try {
-      const res = await fetch('/api/admin/kyc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update_user_kyc',
-          payload: {
-            user_id: userId,
-            is_kyc_mandated: !current
-          }
-        })
-      })
+      const supabase = createClient()
+      const { error: mandateError } = await supabase
+        .from('profiles')
+        .update({ is_kyc_mandated: !current })
+        .eq('id', userId)
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to toggle mandate.')
+      if (mandateError) {
+        // Fallback to server API
+        const res = await fetch('/api/admin/kyc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_user_kyc',
+            payload: {
+              user_id: userId,
+              is_kyc_mandated: !current
+            }
+          })
+        })
+        const apiData = await res.json()
+        if (!res.ok) throw new Error(apiData.error || mandateError.message)
+      }
 
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_kyc_mandated: !current } : u))
-      toast('Mandate Updated', `KYC verification is now ${!current ? 'MANDATORY' : 'OPTIONAL'} for this user.`)
+      toast('Mandate Updated', `Database updated: KYC is now ${!current ? 'MANDATORY' : 'OPTIONAL'}.`)
       router.refresh()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error updating mandate'
@@ -644,7 +782,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
           </div>
           <h1 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">KYC Management</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Complete administrative CRUD control over identity documents, review queues, user verification states, and mandate enforcement.
+            Complete administrative CRUD control directly synced with Cloud Firestore / Supabase database.
           </p>
         </div>
 
@@ -1014,7 +1152,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                           disabled={loadingAction === doc.id}
                           onClick={() => handleQuickReview(doc.id, doc.user_id, 'approved')}
                           className="flex items-center gap-1 bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 active:scale-95 transition-all disabled:opacity-50"
-                          title="Approve document and update user KYC to Approved"
+                          title="Approve document and sync profile status"
                         >
                           <Check size={13} /> Approve
                         </button>
@@ -1025,7 +1163,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                           disabled={loadingAction === doc.id}
                           onClick={() => handleQuickReview(doc.id, doc.user_id, 'rejected')}
                           className="flex items-center gap-1 bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50"
-                          title="Reject document and update user KYC to Rejected"
+                          title="Reject document and sync profile status"
                         >
                           <X size={13} /> Reject
                         </button>
@@ -1072,7 +1210,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
               <p className="mt-1 text-xs text-muted-foreground">
                 {search || filterDocType !== 'all' || activeTab !== 'documents'
                   ? 'No documents matched your current search filters.'
-                  : 'There are currently no KYC documents submitted.'}
+                  : 'There are currently no KYC documents recorded in the database.'}
               </p>
               <div className="mt-5 flex justify-center gap-3">
                 {(search || filterDocType !== 'all' || activeTab !== 'documents') && (
@@ -1196,7 +1334,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
               })
             ) : (
               <div className="p-8 text-center text-muted-foreground text-xs">
-                No users found matching your search criteria.
+                No users found in database matching your search criteria.
               </div>
             )}
           </div>
@@ -1211,8 +1349,8 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
           <div className="relative w-full max-w-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in my-8">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Compliance Administration</p>
-                <h3 className="text-xl font-bold">Create KYC Verification Record</h3>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Database Persistence</p>
+                <h3 className="text-xl font-bold">Record New KYC Document</h3>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -1226,7 +1364,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
               {/* User Selection */}
               <div>
                 <label className="block text-xs font-bold mb-1.5">
-                  Select User / Member <span className="text-primary">*</span>
+                  Select Member <span className="text-primary">*</span>
                 </label>
                 <select
                   value={createUserId}
@@ -1238,7 +1376,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   required
                   className="w-full h-11 border border-border bg-background px-3 text-xs outline-none focus:border-primary font-medium"
                 >
-                  <option value="" disabled>Choose a user...</option>
+                  <option value="" disabled>Choose a member from database...</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>
                       {u.full_name || 'Unnamed'} ({u.email}) — Current KYC: {u.kyc_status}
@@ -1247,7 +1385,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                 </select>
                 {createUserId && (
                   <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-                    Selected User ID: {createUserId}
+                    Database ID: {createUserId}
                   </p>
                 )}
               </div>
@@ -1319,7 +1457,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                         {createFile ? createFile.name : 'Click to select image or document (JPG, PNG, PDF)'}
                       </span>
                       <span className="font-mono text-[10px] text-muted-foreground mt-1">
-                        {createFile ? `${(createFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max 10MB · Stored in kyc-documents bucket'}
+                        {createFile ? `${(createFile.size / 1024 / 1024).toFixed(2)} MB` : 'Max 10MB · Uploads to kyc-documents bucket'}
                       </span>
                       <input
                         type="file"
@@ -1350,13 +1488,13 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
               {/* Admin Notes */}
               <div>
                 <label className="block text-xs font-bold mb-1.5">
-                  Admin Notes / Audit Remarks
+                  Admin Notes / Remarks
                 </label>
                 <textarea
                   rows={2}
                   value={createAdminNotes}
                   onChange={e => setCreateAdminNotes(e.target.value)}
-                  placeholder="e.g. Passport expiration verified, matches user identity details."
+                  placeholder="e.g. Identity verified via passport record."
                   className="w-full border border-border bg-background p-3 text-xs outline-none focus:border-primary resize-none"
                 />
               </div>
@@ -1370,7 +1508,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                     onChange={e => setCreateSyncProfile(e.target.checked)}
                     className="size-4 accent-primary"
                   />
-                  <span>Automatically sync member&apos;s account KYC status to &quot;{createStatus}&quot;</span>
+                  <span>Sync member&apos;s account KYC status to &quot;{createStatus}&quot; in database</span>
                 </label>
 
                 <label className="flex items-center gap-2 text-xs font-bold cursor-pointer">
@@ -1399,7 +1537,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   className="flex items-center gap-2 bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {isCreating ? <RefreshCw size={14} className="animate-spin" /> : <FileCheck size={14} />}
-                  {isCreating ? 'Creating...' : 'Create KYC Record'}
+                  {isCreating ? 'Saving to Database...' : 'Save to Database'}
                 </button>
               </div>
             </form>
@@ -1415,7 +1553,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
           <div className="relative w-full max-w-2xl border border-border bg-card p-6 shadow-2xl animate-fade-in my-8">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Edit Document Details</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Database Record</p>
                 <h3 className="text-xl font-bold">Update KYC Document</h3>
               </div>
               <button
@@ -1534,7 +1672,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                     onChange={e => setEditSyncProfile(e.target.checked)}
                     className="size-4 accent-primary"
                   />
-                  <span>Sync user&apos;s account KYC status to match &quot;{editStatus}&quot;</span>
+                  <span>Sync member&apos;s account KYC status to match &quot;{editStatus}&quot;</span>
                 </label>
               </div>
 
@@ -1553,7 +1691,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   className="flex items-center gap-2 bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {isEditing ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-                  {isEditing ? 'Saving...' : 'Save Changes'}
+                  {isEditing ? 'Saving to Database...' : 'Save to Database'}
                 </button>
               </div>
             </form>
@@ -1582,7 +1720,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   <span className="font-bold text-foreground">
                     {deletingDoc.user?.full_name || deletingDoc.user?.email || deletingDoc.user_id}
                   </span>
-                  ? This action cannot be undone.
+                  ? This will delete the record from Supabase database.
                 </p>
               </div>
             </div>
@@ -1596,7 +1734,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   className="mt-0.5 size-4 accent-primary"
                 />
                 <span className="text-muted-foreground">
-                  Recalculate user&apos;s KYC status (reverts to Not Started if no other approved documents exist)
+                  Recalculate member&apos;s KYC status in database (reverts to Not Started if no other approved documents exist)
                 </span>
               </label>
             </div>
@@ -1848,7 +1986,7 @@ export function AdminKycClient({ documents: initialDocs, users: initialUsers, ad
                   className="flex items-center gap-1.5 bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {isUpdatingUser ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
-                  {isUpdatingUser ? 'Updating...' : 'Update Status'}
+                  {isUpdatingUser ? 'Saving to Database...' : 'Save to Database'}
                 </button>
               </div>
             </form>

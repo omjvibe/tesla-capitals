@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { AdminKycClient } from './kyc-client'
 import type { KycDocument, Profile } from '@/types'
@@ -16,37 +15,33 @@ export default async function AdminKycPage() {
     .single()
   if (profile?.role !== 'admin') redirect('/dashboard')
 
-  const adminSupabase = createAdminClient()
+  // 1. Fetch all KYC documents directly from Supabase
+  const { data: documentsData, error: docsError } = await supabase
+    .from('kyc_documents')
+    .select('*')
+    .order('created_at', { ascending: false })
 
-  // 1. Fetch all users for selection, user directory, and fallback mapping
-  const { data: usersData } = await adminSupabase
+  if (docsError) {
+    console.error('Error fetching KYC documents from Supabase:', docsError)
+  }
+
+  // 2. Fetch all registered user profiles for KYC user management and mapping
+  const { data: usersData, error: usersError } = await supabase
     .from('profiles')
     .select('id, email, full_name, avatar_url, role, vip_tier, kyc_status, is_kyc_mandated, wallet_balance, created_at, updated_at')
     .order('email', { ascending: true })
 
+  if (usersError) {
+    console.error('Error fetching profiles from Supabase:', usersError)
+  }
+
   const users: Profile[] = (usersData || []) as Profile[]
   const usersMap = new Map<string, Profile>(users.map(u => [u.id, u]))
 
-  // 2. Fetch KYC documents with user join fallback
-  let rawDocuments: (KycDocument & { user?: Profile })[] | null = null
-  const { data: docsWithJoin, error: joinErr } = await adminSupabase
-    .from('kyc_documents')
-    .select('*, user:profiles!user_id(id, email, full_name, kyc_status, is_kyc_mandated, avatar_url, role, vip_tier)')
-    .order('created_at', { ascending: false })
-
-  if (joinErr || !docsWithJoin) {
-    const { data: plainDocs } = await adminSupabase
-      .from('kyc_documents')
-      .select('*')
-      .order('created_at', { ascending: false })
-    rawDocuments = plainDocs || []
-  } else {
-    rawDocuments = docsWithJoin
-  }
-
-  const documents: KycDocument[] = (rawDocuments || []).map(doc => ({
+  // Map user profile to each document
+  const documents: KycDocument[] = (documentsData || []).map(doc => ({
     ...doc,
-    user: doc.user || usersMap.get(doc.user_id) || undefined
+    user: usersMap.get(doc.user_id) || undefined
   }))
 
   return (
