@@ -35,7 +35,7 @@ const adminNav = [
   { href: '/admin/orders', label: 'Orders', icon: Package },
   { href: '/admin/vip', label: 'VIP Tiers', icon: ShieldCheck },
   { href: '/admin/giveaways', label: 'Giveaways', icon: Gift },
-  { href: '/admin/kyc', label: 'KYC Review', icon: ShieldCheck },
+  { href: '/admin/kyc', label: 'KYC Manager', icon: ShieldCheck },
   { href: '/admin/emails', label: 'Resend Inbox', icon: Mail },
   { href: '/admin/support', label: 'Support', icon: CircleHelp },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
