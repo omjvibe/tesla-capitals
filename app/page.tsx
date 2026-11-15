@@ -6,6 +6,7 @@ import { LandingThemeToggle } from './landing-client'
 import { AnimatedCounter } from '@/components/ui/animated-counter'
 import { BreakingRoadsterBanner } from '@/components/breaking-roadster-banner'
 import { RoadsterUnveilSection } from '@/components/roadster-unveil-section'
+import { RealEstateShowcaseSection } from '@/components/real-estate-showcase-section'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -33,6 +34,7 @@ export default async function Home() {
               3D Studio
             </Link>
             <Link href="/investments" className="transition-colors hover:text-white">Investments</Link>
+            <Link href="/real-estate" className="transition-colors hover:text-white">Real Estate</Link>
             <Link href="/auctions" className="transition-colors hover:text-white flex items-center gap-1">
               <Flame size={12} className="text-orange-400" />
               Auctions
@@ -120,6 +122,9 @@ export default async function Home() {
 
       {/* ── Next-Gen Roadster SpaceX Flying Car Showcase ── */}
       <RoadsterUnveilSection />
+
+      {/* ── Fractional Real Estate Syndication Showcase ─── */}
+      <RealEstateShowcaseSection />
 
       {/* ── Features Grid ───────────────────────────────── */}
       <section className="border-b border-border">
@@ -252,6 +257,7 @@ export default async function Home() {
                 <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Platform</p>
                 <div className="mt-4 flex flex-col gap-3">
                   <Link href="/investments" className="text-muted-foreground hover:text-foreground">Investments</Link>
+                  <Link href="/real-estate" className="text-muted-foreground hover:text-foreground">Real Estate</Link>
                   <Link href="/stocks" className="text-muted-foreground hover:text-foreground">Markets</Link>
                   <Link href="/inventory" className="text-muted-foreground hover:text-foreground">Inventory</Link>
                   <Link href="/vip" className="text-muted-foreground hover:text-foreground">VIP Membership</Link>
