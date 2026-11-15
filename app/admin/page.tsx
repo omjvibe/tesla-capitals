@@ -17,6 +17,7 @@ export default async function AdminDashboard() {
   const { count: openTickets } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
   const { count: vipMembers } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).neq('vip_tier', 'standard')
   const { count: activeInvestments } = await supabase.from('investments').select('*', { count: 'exact', head: true }).eq('status', 'active')
+  const { count: activeRealEstate } = await supabase.from('real_estate_properties').select('*', { count: 'exact', head: true }).eq('status', 'active')
   const { count: activeGiveaways } = await supabase.from('giveaways').select('*', { count: 'exact', head: true }).eq('status', 'active')
 
   // Recent users
@@ -38,6 +39,7 @@ export default async function AdminDashboard() {
       kpis={{
         totalUsers: totalUsers || 0,
         activeInvestments: activeInvestments || 0,
+        activeRealEstate: activeRealEstate || 0,
         totalOrders: totalOrders || 0,
         pendingKyc: pendingKyc || 0,
         openTickets: openTickets || 0,

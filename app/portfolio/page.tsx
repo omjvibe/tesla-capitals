@@ -22,6 +22,12 @@ export default async function PortfolioPage() {
     .select('*, stock:stocks(symbol, name, price, change_percent)')
     .eq('user_id', user.id)
 
+  const { data: realEstateHoldings } = await supabase
+    .from('real_estate_investments')
+    .select('*, property:real_estate_properties(title, property_type, city, location)')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+
   const { data: transactions } = await supabase
     .from('transactions')
     .select('*')
@@ -31,8 +37,14 @@ export default async function PortfolioPage() {
 
   const invTotal = (investmentHoldings || []).reduce((s, h) => s + Number(h.current_value), 0)
   const stockTotal = (portfolioHoldings || []).reduce((s, h) => s + (Number(h.shares) * Number(h.stock?.price || 0)), 0)
-  const totalValue = invTotal + stockTotal
-  const costBasis = (investmentHoldings || []).reduce((s, h) => s + Number(h.amount), 0) + (portfolioHoldings || []).reduce((s, h) => s + (Number(h.shares) * Number(h.avg_cost)), 0)
+  const reTotal = (realEstateHoldings || []).reduce((s, h) => s + Number(h.current_value), 0)
+  const totalValue = invTotal + stockTotal + reTotal
+
+  const invCost = (investmentHoldings || []).reduce((s, h) => s + Number(h.amount), 0)
+  const stockCost = (portfolioHoldings || []).reduce((s, h) => s + (Number(h.shares) * Number(h.avg_cost)), 0)
+  const reCost = (realEstateHoldings || []).reduce((s, h) => s + Number(h.amount_invested), 0)
+  const costBasis = invCost + stockCost + reCost
+
   const totalPL = totalValue - costBasis
   const plPercent = costBasis > 0 ? (totalPL / costBasis * 100) : 0
 
@@ -78,6 +90,32 @@ export default async function PortfolioPage() {
               <div className="text-right">
                 <p className="text-sm font-bold">{fmt(Number(h.current_value))}</p>
                 <p className="text-xs text-muted-foreground">Invested: {fmt(Number(h.amount))}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Real Estate Holdings */}
+      {(realEstateHoldings && realEstateHoldings.length > 0) && (
+        <section className="mt-5 border border-border bg-card">
+          <div className="border-b border-border p-5 flex items-center justify-between">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Real estate holdings</p>
+            <Link href="/real-estate" className="font-mono text-[10px] uppercase text-primary hover:underline">
+              Browse Real Estate
+            </Link>
+          </div>
+          {realEstateHoldings.map((h: any) => (
+            <div key={h.id} className="flex items-center justify-between border-b border-border p-5 last:border-0">
+              <div>
+                <p className="text-sm font-bold">{h.property?.title || 'Real Estate Asset'}</p>
+                <p className="font-mono text-[10px] text-muted-foreground capitalize">
+                  {h.shares} fractional shares · {h.property?.city || h.property?.location || 'Infrastructure'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold">{fmt(Number(h.current_value))}</p>
+                <p className="text-xs text-muted-foreground">Invested: {fmt(Number(h.amount_invested))}</p>
               </div>
             </div>
           ))}
@@ -137,11 +175,14 @@ export default async function PortfolioPage() {
       )}
 
       {/* Empty state */}
-      {(!investmentHoldings || investmentHoldings.length === 0) && (!portfolioHoldings || portfolioHoldings.length === 0) && (
+      {(!investmentHoldings || investmentHoldings.length === 0) && (!portfolioHoldings || portfolioHoldings.length === 0) && (!realEstateHoldings || realEstateHoldings.length === 0) && (
         <div className="py-20 text-center">
           <p className="text-lg font-bold">Your portfolio is empty</p>
           <p className="mt-2 text-sm text-muted-foreground">Start investing to build your portfolio.</p>
-          <Link href="/investments" className="mt-6 inline-block bg-primary px-6 py-3 text-sm font-bold text-primary-foreground">Explore investments</Link>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link href="/investments" className="bg-primary px-6 py-3 text-sm font-bold text-primary-foreground">Explore investments</Link>
+            <Link href="/real-estate" className="border border-border px-6 py-3 text-sm font-bold hover:border-primary">Browse Real Estate</Link>
+          </div>
         </div>
       )}
     </PlatformShell>

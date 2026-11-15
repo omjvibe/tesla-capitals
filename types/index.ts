@@ -1,7 +1,7 @@
 export * from './database'
 
 // Derived types for common query patterns
-import type { Profile, InvestmentHolding, PortfolioHolding, Stock, Transaction } from './database'
+import type { Profile, InvestmentHolding, PortfolioHolding, Stock, Transaction, RealEstateInvestment, RealEstateProperty } from './database'
 
 export interface DashboardStats {
   totalBalance: number
@@ -17,6 +17,7 @@ export interface PortfolioSummary {
   totalValue: number
   investmentHoldings: InvestmentHolding[]
   stockHoldings: (PortfolioHolding & { stock: Stock })[]
+  realEstateHoldings?: (RealEstateInvestment & { property?: RealEstateProperty })[]
   recentTransactions: Transaction[]
 }
 

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { BarChart3, Bell, BriefcaseBusiness, ChevronRight, CircleHelp, Gavel, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Rocket, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
+import { BarChart3, Bell, BriefcaseBusiness, Building2, ChevronRight, CircleHelp, Gavel, Gift, Home, LogOut, Mail, Menu, Monitor, Moon, Package, Rocket, Settings, ShieldCheck, Sun, UserRound, Wallet, WalletCards, X } from 'lucide-react'
 import { useAuth, useTheme } from '@/lib/auth/provider'
 import { GoogleTranslate } from '@/components/google-translate'
 
@@ -13,6 +13,7 @@ const userNav = [
   { href: '/studio', label: '3D Studio', icon: Rocket },
   { href: '/wallet', label: 'Digital Wallet', icon: Wallet },
   { href: '/investments', label: 'Investments', icon: BriefcaseBusiness },
+  { href: '/real-estate', label: 'Real Estate', icon: Building2 },
   { href: '/stocks', label: 'Stocks', icon: BarChart3 },
   { href: '/portfolio', label: 'Portfolio', icon: WalletCards },
   { href: '/inventory', label: 'Inventory', icon: Package },
@@ -29,6 +30,7 @@ const adminNav = [
   { href: '/admin/wallet', label: 'Wallet Manager', icon: Wallet },
   { href: '/admin/users', label: 'Users', icon: UserRound },
   { href: '/admin/investments', label: 'Investments', icon: BriefcaseBusiness },
+  { href: '/admin/real-estate', label: 'Real Estate', icon: Building2 },
   { href: '/admin/stocks', label: 'Stocks', icon: BarChart3 },
   { href: '/admin/inventory', label: 'Inventory', icon: Package },
   { href: '/admin/auctions', label: 'Auction Manager', icon: Gavel },
@@ -109,11 +111,10 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
               key={href}
               href={href}
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 border-l-2 px-3 py-2.5 text-sm transition-all duration-200 ${
-                pathname === href
+              className={`flex items-center gap-3 border-l-2 px-3 py-2.5 text-sm transition-all duration-200 ${pathname === href
                   ? 'border-primary bg-primary text-primary-foreground font-bold shadow-md'
                   : 'border-transparent text-muted-foreground hover:border-primary hover:bg-muted hover:text-foreground'
-              }`}
+                }`}
             >
               <Icon size={17} />
               <span>{label}</span>
@@ -171,9 +172,8 @@ export function PlatformShell({ children, admin = false }: { children: React.Rea
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] transition-colors ${
-              pathname === href ? 'text-primary font-bold' : 'text-muted-foreground'
-            }`}
+            className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] transition-colors ${pathname === href ? 'text-primary font-bold' : 'text-muted-foreground'
+              }`}
           >
             <Icon size={18} />
             <span>{label.split(' ')[0]}</span>

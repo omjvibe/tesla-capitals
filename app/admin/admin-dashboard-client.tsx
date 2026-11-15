@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   ArrowUpRight,
   BarChart3,
+  Building2,
   Gift,
   Package,
   ShieldCheck,
@@ -84,6 +85,7 @@ function ChartTooltipContent({ active, payload, label }: any) {
 interface KPIData {
   totalUsers: number
   activeInvestments: number
+  activeRealEstate?: number
   totalOrders: number
   pendingKyc: number
   openTickets: number
@@ -117,7 +119,8 @@ interface Props {
 export function AdminDashboardClient({ kpis, recentUsers, recentOrders }: Props) {
   const stats = [
     { label: 'Total users', value: String(kpis.totalUsers), icon: Users, href: '/admin/users' },
-    { label: 'Active investments', value: String(kpis.activeInvestments), icon: BarChart3, href: '/admin/investments' },
+    { label: 'Investments', value: String(kpis.activeInvestments), icon: BarChart3, href: '/admin/investments' },
+    { label: 'Real Estate', value: String(kpis.activeRealEstate ?? 0), icon: Building2, href: '/admin/real-estate' },
     { label: 'Total orders', value: String(kpis.totalOrders), icon: Package, href: '/admin/orders' },
     { label: 'Pending KYC', value: String(kpis.pendingKyc), icon: ShieldCheck, href: '/admin/kyc' },
     { label: 'Open tickets', value: String(kpis.openTickets), icon: MessageSquare, href: '/admin/support' },

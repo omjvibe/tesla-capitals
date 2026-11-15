@@ -12,9 +12,12 @@ export type KycDocType = 'government_id' | 'passport' | 'proof_of_address'
 export type KycDocStatus = 'pending' | 'approved' | 'rejected'
 export type TicketStatus = 'open' | 'in_progress' | 'waiting' | 'resolved'
 export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent'
-export type TransactionType = 'deposit' | 'withdrawal' | 'investment' | 'order' | 'vip_payment' | 'reward' | 'stock_buy' | 'stock_sell'
+export type TransactionType = 'deposit' | 'withdrawal' | 'investment' | 'order' | 'vip_payment' | 'reward' | 'stock_buy' | 'stock_sell' | 'real_estate'
 export type ProductCategory = 'vehicles' | 'energy' | 'accessories'
 export type RequestStatus = 'pending' | 'approved' | 'rejected'
+export type RealEstatePropertyType = 'residential' | 'commercial' | 'land' | 'industrial'
+export type RealEstateStatus = 'draft' | 'active' | 'funded' | 'archived'
+export type RealEstateHoldingStatus = 'active' | 'exited'
 
 export interface Profile {
   id: string
@@ -344,6 +347,49 @@ export interface AuctionBid {
   amount: number
   status: AuctionBidStatus
   created_at: string
+  user?: Profile
+}
+
+export interface RealEstateProperty {
+  id: string
+  title: string
+  description: string | null
+  property_type: RealEstatePropertyType
+  location: string
+  city: string
+  country: string
+  total_value: number
+  min_investment: number
+  total_shares: number
+  available_shares: number
+  price_per_share: number
+  projected_annual_return: number | null
+  rental_yield: number | null
+  occupancy_rate: number | null
+  size_sqft: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  image_url: string | null
+  gallery_urls?: string[]
+  amenities?: string[]
+  status: RealEstateStatus
+  risk_level: RiskLevel
+  holding_period_months: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface RealEstateInvestment {
+  id: string
+  user_id: string
+  property_id: string
+  shares: number
+  amount_invested: number
+  current_value: number
+  status: RealEstateHoldingStatus
+  invested_at: string
+  updated_at: string
+  property?: RealEstateProperty
   user?: Profile
 }
 
