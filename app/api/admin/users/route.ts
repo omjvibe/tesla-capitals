@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendTransactionAlertEmail } from '@/lib/emails/transaction-alert'
 
 export async function POST(req: Request) {
   try {
@@ -77,6 +78,13 @@ export async function POST(req: Request) {
         }
       }
 
+      // Fetch target user's current profile to detect balance changes
+      const { data: existingProfile } = await db
+        .from('profiles')
+        .select('id, email, full_name, wallet_balance')
+        .eq('id', userId)
+        .single()
+
       let { data, error } = await db
         .from('profiles')
         .update(updates)
@@ -101,6 +109,43 @@ export async function POST(req: Request) {
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      // If wallet_balance was updated, send branded transaction alert & insert transaction record
+      if (updates.wallet_balance !== undefined && existingProfile) {
+        const oldBal = Number(existingProfile.wallet_balance || 0)
+        const newBal = Number(updates.wallet_balance)
+        const diff = newBal - oldBal
+
+        if (Math.abs(diff) >= 0.01) {
+          const type = diff > 0 ? 'deposit' : 'withdrawal'
+          const refId = `TSL-${type === 'deposit' ? 'DEP' : 'WTH'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+          // Insert transaction record into transactions table
+          try {
+            await db.from('transactions').insert({
+              user_id: userId,
+              type,
+              amount: diff,
+              description: type === 'deposit' ? 'Deposit settlement' : 'Withdrawal transaction',
+              reference_id: refId,
+            })
+          } catch (txErr) {
+            console.warn('[Admin Users] Could not record transaction:', txErr)
+          }
+
+          // Dispatch branded email alert
+          await sendTransactionAlertEmail({
+            userId,
+            to: existingProfile.email,
+            userName: (updates.full_name as string) || existingProfile.full_name,
+            type,
+            amount: Math.abs(diff),
+            newBalance: newBal,
+            currency: 'USD',
+            referenceId: refId,
+          })
+        }
       }
 
       return NextResponse.json({ success: true, profile: data })

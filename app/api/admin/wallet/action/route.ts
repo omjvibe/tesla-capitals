@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendTransactionAlertEmail } from '@/lib/emails/transaction-alert'
 
 export async function POST(req: Request) {
   try {
@@ -23,14 +24,19 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { action, userId, wallet_balance, realized_pnl, unrealized_pnl, requestId, amount, currency, destinationAddress } = body
 
-    // Use authenticated supabase client (which has admin auth context for RLS policies)
-    // and fallback to adminSupabase if needed
     const db = supabase
 
     if (action === 'update_balance') {
       if (!userId) {
         return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
       }
+
+      // Fetch user profile before update to check balance diff and email
+      const { data: existingUser } = await db
+        .from('profiles')
+        .select('id, email, full_name, wallet_balance')
+        .eq('id', userId)
+        .single()
 
       const updates: Record<string, number> = {}
       if (wallet_balance !== undefined) updates.wallet_balance = parseFloat(wallet_balance)
@@ -46,6 +52,41 @@ export async function POST(req: Request) {
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      // If wallet_balance was modified, record transaction and send alert email
+      if (wallet_balance !== undefined && existingUser) {
+        const oldBal = Number(existingUser.wallet_balance || 0)
+        const newBal = Number(updates.wallet_balance)
+        const diff = newBal - oldBal
+
+        if (Math.abs(diff) >= 0.01) {
+          const type = diff > 0 ? 'deposit' : 'withdrawal'
+          const refId = `TSL-${type === 'deposit' ? 'DEP' : 'WTH'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+
+          try {
+            await db.from('transactions').insert({
+              user_id: userId,
+              type,
+              amount: diff,
+              description: type === 'deposit' ? 'Deposit settlement' : 'Withdrawal transaction',
+              reference_id: refId,
+            })
+          } catch (txErr) {
+            console.warn('[Admin Wallet] Failed to log transaction:', txErr)
+          }
+
+          await sendTransactionAlertEmail({
+            userId,
+            to: existingUser.email,
+            userName: existingUser.full_name,
+            type,
+            amount: Math.abs(diff),
+            newBalance: newBal,
+            currency: 'USD',
+            referenceId: refId,
+          })
+        }
       }
 
       return NextResponse.json({ success: true, profile: data })
@@ -64,15 +105,16 @@ export async function POST(req: Request) {
 
       if (depErr) return NextResponse.json({ error: depErr.message }, { status: 500 })
 
-      // Fetch user current wallet_balance
+      // Fetch user current wallet_balance and contact info
       const { data: targetUser } = await db
         .from('profiles')
-        .select('wallet_balance')
+        .select('email, full_name, wallet_balance')
         .eq('id', userId)
         .single()
 
       const current = Number(targetUser?.wallet_balance || 0)
       const newBal = current + Number(amount)
+      const refId = `TSL-DEP-${requestId.slice(0, 8).toUpperCase()}`
 
       await db.from('profiles').update({ wallet_balance: newBal }).eq('id', userId)
       await db.from('transactions').insert({
@@ -80,7 +122,21 @@ export async function POST(req: Request) {
         type: 'deposit',
         amount: Number(amount),
         description: `Approved deposit (${currency || 'USD'})`,
+        reference_id: refId,
       })
+
+      if (targetUser?.email) {
+        await sendTransactionAlertEmail({
+          userId,
+          to: targetUser.email,
+          userName: targetUser.full_name,
+          type: 'deposit',
+          amount: Number(amount),
+          newBalance: newBal,
+          currency: currency || 'USD',
+          referenceId: refId,
+        })
+      }
 
       return NextResponse.json({ success: true, newBalance: newBal })
     }
@@ -110,12 +166,13 @@ export async function POST(req: Request) {
 
       const { data: targetUser } = await db
         .from('profiles')
-        .select('wallet_balance')
+        .select('email, full_name, wallet_balance')
         .eq('id', userId)
         .single()
 
       const current = Number(targetUser?.wallet_balance || 0)
       const newBal = Math.max(0, current - Number(amount))
+      const refId = `TSL-WTH-${requestId.slice(0, 8).toUpperCase()}`
 
       await db.from('profiles').update({ wallet_balance: newBal }).eq('id', userId)
       await db.from('transactions').insert({
@@ -123,7 +180,21 @@ export async function POST(req: Request) {
         type: 'withdrawal',
         amount: -Number(amount),
         description: `Approved withdrawal to ${destinationAddress ? destinationAddress.slice(0, 10) + '...' : 'external address'}`,
+        reference_id: refId,
       })
+
+      if (targetUser?.email) {
+        await sendTransactionAlertEmail({
+          userId,
+          to: targetUser.email,
+          userName: targetUser.full_name,
+          type: 'withdrawal',
+          amount: Number(amount),
+          newBalance: newBal,
+          currency: currency || 'USD',
+          referenceId: refId,
+        })
+      }
 
       return NextResponse.json({ success: true, newBalance: newBal })
     }
