@@ -19,6 +19,7 @@ import {
   FileText,
   Sparkles,
   Search,
+  Activity,
 } from 'lucide-react'
 import { PlatformShell } from '@/components/platform-shell'
 import { useToast } from '@/components/ui/toast'
@@ -66,6 +67,26 @@ export function AdminEmailsClient({ initialEmails, users }: Props) {
   const [simSubject, setSimSubject] = useState('Question regarding Cybertruck Cyberbeast auction')
   const [simBody, setSimBody] = useState('Hello Tesla Capital team,\n\nI would like to verify the escrow rules for bidding on the Cybertruck Foundation Series auction lot. Does my full bid get held from my available liquid balance?\n\nThank you,\nMember')
   const [simulating, setSimulating] = useState(false)
+
+  // Diagnostics State
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false)
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false)
+  const [diagnosticData, setDiagnosticData] = useState<any>(null)
+
+  const handleRunDiagnostics = async () => {
+    setRunningDiagnostics(true)
+    setShowDiagnosticsModal(true)
+    setDiagnosticData(null)
+    try {
+      const res = await fetch('/api/admin/diagnostics/email')
+      const data = await res.json()
+      setDiagnosticData(data)
+    } catch (err: any) {
+      setDiagnosticData({ error: err.message || 'Failed to connect to diagnostics endpoint' })
+    } finally {
+      setRunningDiagnostics(false)
+    }
+  }
 
   // Separate inbound and outbound
   const inboundEmails = emails.filter(e => e.direction === 'inbound')
@@ -224,6 +245,14 @@ export function AdminEmailsClient({ initialEmails, users }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleRunDiagnostics}
+            disabled={runningDiagnostics}
+            className="flex items-center gap-2 border border-border bg-card px-4 py-3 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:border-primary hover:text-foreground active:scale-95 disabled:opacity-50"
+          >
+            <Activity size={15} className={runningDiagnostics ? 'animate-pulse text-primary' : 'text-emerald-400'} />
+            {runningDiagnostics ? 'Testing...' : 'Test Delivery'}
+          </button>
           <button
             onClick={() => setShowSimulateModal(true)}
             className="flex items-center gap-2 border border-border bg-card px-4 py-3 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:border-primary hover:text-foreground active:scale-95"
@@ -628,6 +657,133 @@ export function AdminEmailsClient({ initialEmails, users }: Props) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Diagnostics Modal */}
+      {showDiagnosticsModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl border border-border bg-card p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <p className="font-mono text-xs uppercase text-primary">Gateway Diagnostics</p>
+                <h3 className="text-lg font-bold">Resend Runtime Delivery Health</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDiagnosticsModal(false)}
+                className="text-muted-foreground hover:text-foreground text-sm font-mono px-2 py-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {runningDiagnostics ? (
+              <div className="py-12 text-center flex flex-col items-center justify-center gap-3">
+                <Activity size={32} className="animate-pulse text-primary" />
+                <p className="text-sm font-mono text-muted-foreground">Probing Resend connectivity & checking environment variables...</p>
+              </div>
+            ) : diagnosticData ? (
+              <div className="space-y-4">
+                {/* Environment Variables summary */}
+                <div className="border border-border bg-background p-4 space-y-3">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Server Environment</p>
+                  <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">RESEND_API_KEY</span>
+                      <span className={diagnosticData.env?.hasResendApiKey ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                        {diagnosticData.env?.hasResendApiKey ? `Configured (${diagnosticData.env.resendKeyPrefix})` : 'MISSING / NOT SET'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">SUPABASE_SERVICE_ROLE_KEY</span>
+                      <span className={diagnosticData.env?.hasServiceRoleKey ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                        {diagnosticData.env?.hasServiceRoleKey ? 'Configured' : 'MISSING / NOT SET'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">Sender Address</span>
+                      <span className="text-foreground truncate block">{diagnosticData.env?.fromEmail || 'Default'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px]">Platform / Host</span>
+                      <span className="text-foreground">{diagnosticData.env?.vercelEnv ? `Vercel (${diagnosticData.env.vercelEnv})` : (diagnosticData.env?.nodeVersion || 'Unknown')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* API Key Missing Alert */}
+                {diagnosticData.env && !diagnosticData.env.hasResendApiKey && (
+                  <div className="border border-red-500/40 bg-red-500/10 p-4 text-xs space-y-2">
+                    <p className="font-bold text-red-400 flex items-center gap-1.5">
+                      <AlertTriangle size={14} /> RESEND_API_KEY is not set in Vercel!
+                    </p>
+                    <p className="text-muted-foreground">
+                      Your local <code className="text-foreground">.env.local</code> file is not pushed to git. You must add <code className="text-foreground font-mono">RESEND_API_KEY</code> and <code className="text-foreground font-mono">SUPABASE_SERVICE_ROLE_KEY</code> in your <strong>Vercel Project Settings &rarr; Environment Variables</strong> and redeploy.
+                    </p>
+                  </div>
+                )}
+
+                {/* Diagnostics Results */}
+                {diagnosticData.diagnostics && (
+                  <div className="border border-border bg-background p-4 space-y-3 text-xs font-mono">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Connection & Ping Tests</p>
+                    
+                    {diagnosticData.diagnostics.nodeHttps && (
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                        <span>Native node:https (IPv4)</span>
+                        <span className={diagnosticData.diagnostics.nodeHttps.success ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                          {diagnosticData.diagnostics.nodeHttps.success ? `HTTP ${diagnosticData.diagnostics.nodeHttps.statusCode} (${diagnosticData.diagnostics.nodeHttps.durationMs}ms)` : (diagnosticData.diagnostics.nodeHttps.error || 'Failed')}
+                        </span>
+                      </div>
+                    )}
+
+                    {diagnosticData.diagnostics.standardFetch && (
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                        <span>Standard fetch()</span>
+                        <span className={diagnosticData.diagnostics.standardFetch.success ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                          {diagnosticData.diagnostics.standardFetch.success ? `HTTP ${diagnosticData.diagnostics.standardFetch.statusCode} (${diagnosticData.diagnostics.standardFetch.durationMs}ms)` : (diagnosticData.diagnostics.standardFetch.error || 'Failed')}
+                        </span>
+                      </div>
+                    )}
+
+                    {diagnosticData.diagnostics.compositeDispatch && (
+                      <div className="flex items-center justify-between pt-1">
+                        <span>Live Test Dispatch (Resend)</span>
+                        <span className={diagnosticData.diagnostics.compositeDispatch.ok ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                          {diagnosticData.diagnostics.compositeDispatch.ok ? `DELIVERED (ID: ${diagnosticData.diagnostics.compositeDispatch.data?.id?.slice(0, 8)}...)` : (diagnosticData.diagnostics.compositeDispatch.error || 'Failed')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {diagnosticData.error && (
+                  <div className="border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-400 font-mono">
+                    {diagnosticData.error}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <div className="flex justify-between items-center pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={handleRunDiagnostics}
+                disabled={runningDiagnostics}
+                className="flex items-center gap-1.5 border border-border px-4 py-2 font-mono text-xs uppercase hover:border-primary text-muted-foreground hover:text-foreground active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={runningDiagnostics ? 'animate-spin' : ''} /> Re-run Test
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDiagnosticsModal(false)}
+                className="bg-primary px-5 py-2 font-mono text-xs font-bold text-primary-foreground hover:brightness-110 active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </PlatformShell>
