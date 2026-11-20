@@ -29,6 +29,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Missing userId or payload' }, { status: 400 })
       }
 
+      // Prevent accidental self-demotion
+      if (user.id === userId && payload.role && payload.role !== 'admin') {
+        return NextResponse.json({ error: 'Cannot revoke your own admin privileges.' }, { status: 400 })
+      }
+
       // Whitelist allowed fields
       const allowed = [
         'full_name', 'wallet_balance', 'btc_balance', 'eth_balance', 'usdt_balance',
@@ -39,13 +44,18 @@ export async function POST(req: Request) {
       const updates: Record<string, unknown> = {}
       for (const key of allowed) {
         if (payload[key] !== undefined) {
-          // Parse numeric fields
           if (['wallet_balance', 'btc_balance', 'eth_balance', 'usdt_balance', 'realized_pnl', 'unrealized_pnl'].includes(key)) {
-            updates[key] = parseFloat(payload[key])
+            const val = parseFloat(payload[key])
+            updates[key] = isNaN(val) ? 0 : val
           } else if (key === 'is_kyc_mandated') {
             updates[key] = Boolean(payload[key])
           } else if (key === 'vip_expires_at') {
-            updates[key] = payload[key] || null
+            if (!payload[key]) {
+              updates[key] = null
+            } else {
+              const d = new Date(payload[key])
+              updates[key] = isNaN(d.getTime()) ? null : d.toISOString()
+            }
           } else {
             updates[key] = payload[key]
           }
@@ -56,14 +66,38 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
       }
 
-      // Use admin client to bypass RLS reliably
-      const admin = createAdminClient()
-      const { data, error } = await admin
+      // Primary client: admin client (service-role) if key is set, fallback to authenticated client
+      let db = supabase
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        try {
+          db = createAdminClient()
+        } catch (e) {
+          console.warn('[Admin Users] Failed to initialize admin client, falling back to authenticated client', e)
+          db = supabase
+        }
+      }
+
+      let { data, error } = await db
         .from('profiles')
         .update(updates)
         .eq('id', userId)
         .select()
         .single()
+
+      // If service role failed or errored, try fallback with authenticated supabase client
+      if (error && db !== supabase) {
+        const fallback = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', userId)
+          .select()
+          .single()
+
+        if (!fallback.error) {
+          data = fallback.data
+          error = null
+        }
+      }
 
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
