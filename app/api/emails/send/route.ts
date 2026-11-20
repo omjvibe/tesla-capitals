@@ -1,5 +1,10 @@
+import dns from 'node:dns'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+
+try {
+  dns.setDefaultResultOrder('ipv4first')
+} catch {}
 
 export async function POST(req: Request) {
   try {

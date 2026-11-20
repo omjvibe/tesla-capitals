@@ -1,4 +1,9 @@
+import dns from 'node:dns'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+try {
+  dns.setDefaultResultOrder('ipv4first')
+} catch {}
 
 export interface TransactionAlertParams {
   userId: string
