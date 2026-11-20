@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendTransactionAlertEmail } from '@/lib/emails/transaction-alert'
 
 export async function POST(req: Request) {
@@ -24,7 +25,15 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { action, userId, wallet_balance, realized_pnl, unrealized_pnl, requestId, amount, currency, destinationAddress } = body
 
-    const db = supabase
+    let db = supabase
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        db = createAdminClient()
+      } catch (e) {
+        console.warn('[Admin Wallet] Failed to init admin client, falling back to authenticated client', e)
+        db = supabase
+      }
+    }
 
     if (action === 'update_balance') {
       if (!userId) {
@@ -78,9 +87,17 @@ export async function POST(req: Request) {
             console.warn('[Admin Wallet] Failed to log transaction:', txErr)
           }
 
+          let recipientEmail = existingUser.email
+          if (!recipientEmail && (db as any).auth?.admin) {
+            try {
+              const authRes = await (db as any).auth.admin.getUserById(userId)
+              recipientEmail = authRes?.data?.user?.email || null
+            } catch {}
+          }
+
           emailResult = await sendTransactionAlertEmail({
             userId,
-            to: existingUser.email,
+            to: recipientEmail || '',
             userName: existingUser.full_name,
             type,
             amount: Math.abs(diff),
@@ -128,11 +145,19 @@ export async function POST(req: Request) {
       })
 
       let emailResult = null
-      if (targetUser?.email) {
+      let recipientEmail = targetUser?.email
+      if (!recipientEmail && (db as any).auth?.admin) {
+        try {
+          const authRes = await (db as any).auth.admin.getUserById(userId)
+          recipientEmail = authRes?.data?.user?.email || null
+        } catch {}
+      }
+
+      if (recipientEmail) {
         emailResult = await sendTransactionAlertEmail({
           userId,
-          to: targetUser.email,
-          userName: targetUser.full_name,
+          to: recipientEmail,
+          userName: targetUser?.full_name,
           type: 'deposit',
           amount: Number(amount),
           newBalance: newBal,
@@ -187,11 +212,19 @@ export async function POST(req: Request) {
       })
 
       let emailResult = null
-      if (targetUser?.email) {
+      let recipientEmail = targetUser?.email
+      if (!recipientEmail && (db as any).auth?.admin) {
+        try {
+          const authRes = await (db as any).auth.admin.getUserById(userId)
+          recipientEmail = authRes?.data?.user?.email || null
+        } catch {}
+      }
+
+      if (recipientEmail) {
         emailResult = await sendTransactionAlertEmail({
           userId,
-          to: targetUser.email,
-          userName: targetUser.full_name,
+          to: recipientEmail,
+          userName: targetUser?.full_name,
           type: 'withdrawal',
           amount: Number(amount),
           newBalance: newBal,

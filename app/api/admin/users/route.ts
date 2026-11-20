@@ -136,10 +136,19 @@ export async function POST(req: Request) {
             console.warn('[Admin Users] Could not record transaction:', txErr)
           }
 
+          // Resolve recipient email with fallback to auth admin if profile email is missing
+          let recipientEmail = existingProfile.email
+          if (!recipientEmail && (db as any).auth?.admin) {
+            try {
+              const authRes = await (db as any).auth.admin.getUserById(userId)
+              recipientEmail = authRes?.data?.user?.email || null
+            } catch {}
+          }
+
           // Dispatch branded email alert
           const emailRes = await sendTransactionAlertEmail({
             userId,
-            to: existingProfile.email,
+            to: recipientEmail || '',
             userName: (updates.full_name as string) || existingProfile.full_name,
             type,
             amount: Math.abs(diff),
@@ -151,7 +160,7 @@ export async function POST(req: Request) {
           emailStatus = {
             attempted: true,
             sent: emailRes.success,
-            recipient: existingProfile.email,
+            recipient: recipientEmail || undefined,
             error: emailRes.error,
           }
         }

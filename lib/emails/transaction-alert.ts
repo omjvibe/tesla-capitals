@@ -18,69 +18,112 @@ export interface TransactionAlertParams {
   description?: string
 }
 
-function dispatchViaHttps(
+export async function dispatchViaHttps(
   apiKey: string,
   fromAddr: string,
   toAddr: string,
   subj: string,
-  bodyHtml: string
+  bodyHtml: string,
+  inReplyTo?: string | null
 ): Promise<{ ok: boolean; status: number; data: any; error?: string }> {
-  return new Promise((resolve) => {
-    const payload = JSON.stringify({
-      from: fromAddr,
-      to: [toAddr],
-      subject: subj,
-      html: bodyHtml,
+  // 1. Try native node:https with family: 4 (bypasses Next.js fetch patches and forces IPv4)
+  try {
+    const res = await new Promise<{ ok: boolean; status: number; data: any; error?: string }>((resolve) => {
+      const payload = JSON.stringify({
+        from: fromAddr,
+        to: [toAddr],
+        subject: subj,
+        html: bodyHtml,
+        headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
+      })
+
+      const req = https.request('https://api.resend.com/emails', {
+        method: 'POST',
+        family: 4,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+          'User-Agent': 'TeslaCapital-Dispatcher/1.0',
+          'Connection': 'close',
+        },
+        timeout: 8000,
+      }, (resp) => {
+        let data = ''
+        resp.on('data', (chunk) => { data += chunk })
+        resp.on('end', () => {
+          try {
+            const parsed = JSON.parse(data)
+            resolve({
+              ok: (resp.statusCode || 500) >= 200 && (resp.statusCode || 500) < 300,
+              status: resp.statusCode || 500,
+              data: parsed,
+            })
+          } catch {
+            resolve({
+              ok: (resp.statusCode || 500) >= 200 && (resp.statusCode || 500) < 300,
+              status: resp.statusCode || 500,
+              data: { raw: data },
+            })
+          }
+        })
+      })
+
+      req.on('timeout', () => {
+        req.destroy(new Error('Connection timed out after 8s'))
+      })
+
+      req.on('error', (err) => {
+        resolve({
+          ok: false,
+          status: 500,
+          data: null,
+          error: err.message,
+        })
+      })
+
+      req.write(payload)
+      req.end()
     })
 
-    const req = https.request('https://api.resend.com/emails', {
+    if (res.ok) return res
+    if (res.status !== 500 && res.status !== 0) return res
+  } catch (httpsErr) {
+    console.warn('[Transaction Alert] node:https attempt failed, falling back to fetch:', httpsErr)
+  }
+
+  // 2. Fallback to standard fetch (for Vercel Edge or environments where raw sockets are restricted)
+  try {
+    const fetchRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      family: 4,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent': 'TeslaCapital-Dispatcher/1.0',
-        'Connection': 'close',
       },
-      timeout: 10000,
-    }, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data)
-          resolve({
-            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
-            status: res.statusCode || 500,
-            data: parsed,
-          })
-        } catch {
-          resolve({
-            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
-            status: res.statusCode || 500,
-            data: { raw: data },
-          })
-        }
-      })
+      body: JSON.stringify({
+        from: fromAddr,
+        to: [toAddr],
+        subject: subj,
+        html: bodyHtml,
+        headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
+      }),
     })
 
-    req.on('timeout', () => {
-      req.destroy(new Error('Connection timed out after 10s'))
-    })
-
-    req.on('error', (err) => {
-      resolve({
-        ok: false,
-        status: 500,
-        data: null,
-        error: err.message,
-      })
-    })
-
-    req.write(payload)
-    req.end()
-  })
+    const data = await fetchRes.json().catch(() => ({}))
+    return {
+      ok: fetchRes.ok,
+      status: fetchRes.status,
+      data,
+      error: fetchRes.ok ? undefined : (data?.message || `HTTP ${fetchRes.status}`),
+    }
+  } catch (fetchErr: unknown) {
+    return {
+      ok: false,
+      status: 500,
+      data: null,
+      error: fetchErr instanceof Error ? fetchErr.message : 'Network error reaching Resend API',
+    }
+  }
 }
 
 export function generateTransactionAlertHtml(params: {
@@ -318,61 +361,70 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
       console.warn('[Transaction Alert]', sendError)
     }
 
-    // Use adminSupabase to log email and record in-app notification
-    const admin = createAdminClient()
+    // Safely write to resend_emails, email_logs, and notifications
+    let admin = null
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        admin = createAdminClient()
+      } catch (adminErr) {
+        console.warn('[Transaction Alert] Could not initialize admin client:', adminErr)
+      }
+    }
 
-    // 1. Log to resend_emails
-    try {
-      await admin.from('resend_emails').insert({
-        direction: 'outbound',
-        from_email: resendId ? (process.env.RESEND_FROM_EMAIL || 'support@teslacapitals.app') : 'support@teslacapitals.app',
-        to_email: to,
-        subject,
-        body_html: html,
-        status: resendId ? 'sent' : (resendApiKey ? 'failed' : 'simulated'),
-        resend_id: resendId,
-        metadata: {
+    if (admin) {
+      // 1. Log to resend_emails
+      try {
+        await admin.from('resend_emails').insert({
+          direction: 'outbound',
+          from_email: resendId ? (process.env.RESEND_FROM_EMAIL || 'support@teslacapitals.app') : 'support@teslacapitals.app',
+          to_email: to,
+          subject,
+          body_html: html,
+          status: resendId ? 'sent' : (resendApiKey ? 'failed' : 'simulated'),
+          resend_id: resendId,
+          metadata: {
+            template: isDeposit ? 'deposit_confirmation' : 'withdrawal_confirmation',
+            reference_id: referenceId,
+            type,
+            amount,
+            new_balance: newBalance,
+            error: sendError || null,
+          },
+        })
+      } catch (logErr) {
+        console.warn('[Transaction Alert] Could not write to resend_emails:', logErr)
+      }
+
+      // 2. Fallback sync to email_logs
+      try {
+        await admin.from('email_logs').insert({
+          direction: 'outbound',
+          from_email: 'support@teslacapitals.app',
+          to_email: to,
+          recipient: to,
+          subject,
           template: isDeposit ? 'deposit_confirmation' : 'withdrawal_confirmation',
-          reference_id: referenceId,
-          type,
-          amount,
-          new_balance: newBalance,
-          error: sendError || null,
-        },
-      })
-    } catch (logErr) {
-      console.warn('[Transaction Alert] Could not write to resend_emails:', logErr)
-    }
+          status: resendId ? 'sent' : (resendApiKey ? 'failed' : 'simulated'),
+          resend_id: resendId,
+        })
+      } catch {
+        // Ignore if email_logs table does not exist
+      }
 
-    // 2. Fallback sync to email_logs
-    try {
-      await admin.from('email_logs').insert({
-        direction: 'outbound',
-        from_email: 'support@teslacapitals.app',
-        to_email: to,
-        recipient: to,
-        subject,
-        template: isDeposit ? 'deposit_confirmation' : 'withdrawal_confirmation',
-        status: resendId ? 'sent' : (resendApiKey ? 'failed' : 'simulated'),
-        resend_id: resendId,
-      })
-    } catch {
-      // Ignore if email_logs table does not exist
-    }
-
-    // 3. Create in-app notification for the user
-    try {
-      await admin.from('notifications').insert({
-        user_id: userId,
-        title: isDeposit ? 'Deposit Settled' : 'Withdrawal Processed',
-        message: isDeposit
-          ? `Your liquid wallet has been credited with $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD.`
-          : `A withdrawal of $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD has been processed from your balance.`,
-        type: isDeposit ? 'deposit' : 'withdrawal',
-        link: '/wallet',
-      })
-    } catch (notifErr) {
-      console.warn('[Transaction Alert] Could not write notification:', notifErr)
+      // 3. Create in-app notification for the user
+      try {
+        await admin.from('notifications').insert({
+          user_id: userId,
+          title: isDeposit ? 'Deposit Settled' : 'Withdrawal Processed',
+          message: isDeposit
+            ? `Your liquid wallet has been credited with $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD.`
+            : `A withdrawal of $${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD has been processed from your balance.`,
+          type: isDeposit ? 'deposit' : 'withdrawal',
+          link: '/wallet',
+        })
+      } catch (notifErr) {
+        console.warn('[Transaction Alert] Could not write notification:', notifErr)
+      }
     }
 
     return {
