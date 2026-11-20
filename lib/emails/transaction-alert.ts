@@ -1,4 +1,5 @@
 import dns from 'node:dns'
+import https from 'node:https'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 try {
@@ -15,6 +16,71 @@ export interface TransactionAlertParams {
   currency?: string
   referenceId?: string
   description?: string
+}
+
+function dispatchViaHttps(
+  apiKey: string,
+  fromAddr: string,
+  toAddr: string,
+  subj: string,
+  bodyHtml: string
+): Promise<{ ok: boolean; status: number; data: any; error?: string }> {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({
+      from: fromAddr,
+      to: [toAddr],
+      subject: subj,
+      html: bodyHtml,
+    })
+
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      family: 4,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'User-Agent': 'TeslaCapital-Dispatcher/1.0',
+        'Connection': 'close',
+      },
+      timeout: 10000,
+    }, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data)
+          resolve({
+            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
+            status: res.statusCode || 500,
+            data: parsed,
+          })
+        } catch {
+          resolve({
+            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
+            status: res.statusCode || 500,
+            data: { raw: data },
+          })
+        }
+      })
+    })
+
+    req.on('timeout', () => {
+      req.destroy(new Error('Connection timed out after 10s'))
+    })
+
+    req.on('error', (err) => {
+      resolve({
+        ok: false,
+        status: 500,
+        data: null,
+        error: err.message,
+      })
+    })
+
+    req.write(payload)
+    req.end()
+  })
 }
 
 export function generateTransactionAlertHtml(params: {
@@ -219,44 +285,26 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
       const primaryFrom = process.env.RESEND_FROM_EMAIL || 'Tesla Capital <support@teslacapitals.app>'
       const fallbackFrom = 'Tesla Capital <onboarding@resend.dev>'
 
-      async function attemptDispatch(fromAddr: string) {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromAddr,
-            to: [to],
-            subject,
-            html,
-          }),
-        })
-        const data = await res.json().catch(() => ({}))
-        return { ok: res.ok, status: res.status, data }
-      }
-
       try {
-        const firstTry = await attemptDispatch(primaryFrom)
+        const firstTry = await dispatchViaHttps(resendApiKey, primaryFrom, to, subject, html)
         if (firstTry.ok && firstTry.data?.id) {
           resendId = firstTry.data.id
         } else {
-          sendError = firstTry.data?.message || `Resend error HTTP ${firstTry.status}`
-          console.warn('[Transaction Alert] First attempt failed with sender:', primaryFrom, sendError)
+          sendError = firstTry.data?.message || firstTry.error || `Resend error HTTP ${firstTry.status}`
+          console.warn('[Transaction Alert] Primary dispatch failed with sender:', primaryFrom, sendError)
 
-          // If domain is unverified, automatically retry with Resend sandbox testing domain
+          // If domain unverified, retry with onboarding fallback
           if (
             primaryFrom !== fallbackFrom &&
             (firstTry.status === 403 || sendError?.toLowerCase().includes('not verified') || sendError?.toLowerCase().includes('domain'))
           ) {
             console.log('[Transaction Alert] Attempting fallback sender:', fallbackFrom)
-            const secondTry = await attemptDispatch(fallbackFrom)
+            const secondTry = await dispatchViaHttps(resendApiKey, fallbackFrom, to, subject, html)
             if (secondTry.ok && secondTry.data?.id) {
               resendId = secondTry.data.id
               sendError = null
             } else {
-              sendError = secondTry.data?.message || `Resend error HTTP ${secondTry.status}`
+              sendError = secondTry.data?.message || secondTry.error || `Resend error HTTP ${secondTry.status}`
               console.warn('[Transaction Alert] Fallback attempt also failed:', sendError)
             }
           }

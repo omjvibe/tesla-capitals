@@ -1,10 +1,78 @@
 import dns from 'node:dns'
+import https from 'node:https'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 try {
   dns.setDefaultResultOrder('ipv4first')
 } catch {}
+
+function dispatchViaHttps(
+  apiKey: string,
+  fromAddr: string,
+  toAddr: string,
+  subj: string,
+  bodyHtml: string,
+  inReplyTo?: string | null
+): Promise<{ ok: boolean; status: number; data: any; error?: string }> {
+  return new Promise((resolve) => {
+    const payload = JSON.stringify({
+      from: fromAddr,
+      to: [toAddr],
+      subject: subj,
+      html: bodyHtml,
+      headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
+    })
+
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      family: 4,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'User-Agent': 'TeslaCapital-Dispatcher/1.0',
+        'Connection': 'close',
+      },
+      timeout: 10000,
+    }, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data)
+          resolve({
+            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
+            status: res.statusCode || 500,
+            data: parsed,
+          })
+        } catch {
+          resolve({
+            ok: (res.statusCode || 500) >= 200 && (res.statusCode || 500) < 300,
+            status: res.statusCode || 500,
+            data: { raw: data },
+          })
+        }
+      })
+    })
+
+    req.on('timeout', () => {
+      req.destroy(new Error('Connection timed out after 10s'))
+    })
+
+    req.on('error', (err) => {
+      resolve({
+        ok: false,
+        status: 500,
+        data: null,
+        error: err.message,
+      })
+    })
+
+    req.write(payload)
+    req.end()
+  })
+}
 
 export async function POST(req: Request) {
   try {
@@ -28,51 +96,26 @@ export async function POST(req: Request) {
     let usedFrom = primaryFrom
 
     if (resendApiKey) {
-      let res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: primaryFrom,
-          to,
-          subject,
-          html,
-          headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
-        }),
-      })
-
-      let data = await res.json().catch(() => ({}))
-
-      // Fallback if unverified domain
-      if (
-        !res.ok &&
-        primaryFrom !== fallbackFrom &&
-        (res.status === 403 || data?.message?.toLowerCase().includes('not verified') || data?.message?.toLowerCase().includes('domain'))
-      ) {
-        usedFrom = fallbackFrom
-        res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fallbackFrom,
-            to,
-            subject,
-            html,
-            headers: inReplyTo ? { 'In-Reply-To': inReplyTo } : undefined,
-          }),
-        })
-        data = await res.json().catch(() => ({}))
+      const firstTry = await dispatchViaHttps(resendApiKey, primaryFrom, to, subject, html, inReplyTo)
+      if (firstTry.ok && firstTry.data?.id) {
+        resendId = firstTry.data.id
+      } else {
+        const errMsg = firstTry.data?.message || firstTry.error || ''
+        if (
+          primaryFrom !== fallbackFrom &&
+          (firstTry.status === 403 || errMsg.toLowerCase().includes('not verified') || errMsg.toLowerCase().includes('domain'))
+        ) {
+          usedFrom = fallbackFrom
+          const secondTry = await dispatchViaHttps(resendApiKey, fallbackFrom, to, subject, html, inReplyTo)
+          if (secondTry.ok && secondTry.data?.id) {
+            resendId = secondTry.data.id
+          } else {
+            return NextResponse.json({ error: secondTry.data?.message || secondTry.error || 'Failed to dispatch email via Resend' }, { status: secondTry.status })
+          }
+        } else {
+          return NextResponse.json({ error: firstTry.data?.message || firstTry.error || 'Failed to dispatch email via Resend' }, { status: firstTry.status })
+        }
       }
-
-      if (!res.ok) {
-        return NextResponse.json({ error: data.message || 'Failed to dispatch email via Resend' }, { status: res.status })
-      }
-      resendId = data.id
     }
 
     // Log to resend_emails with outbound direction
@@ -82,7 +125,7 @@ export async function POST(req: Request) {
       to_email: to,
       subject,
       body_html: html,
-      status: resendApiKey ? 'sent' : 'simulated',
+      status: resendApiKey ? (resendId ? 'sent' : 'failed') : 'simulated',
       resend_id: resendId,
       in_reply_to: inReplyTo || null,
       metadata: { template: template || 'custom_support' },
@@ -96,7 +139,7 @@ export async function POST(req: Request) {
       recipient: to,
       subject,
       template: template || 'custom_support',
-      status: resendApiKey ? 'sent' : 'simulated',
+      status: resendApiKey ? (resendId ? 'sent' : 'failed') : 'simulated',
       resend_id: resendId,
       in_reply_to: inReplyTo || null,
     })
