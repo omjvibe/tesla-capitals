@@ -92,7 +92,17 @@ export function AdminUsersClient({ users: initial }: { users: Profile[] }) {
       if (!res.ok) throw new Error(data.error || 'Update failed')
 
       setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, ...data.profile } : u))
-      toast('Profile Updated', `Successfully updated ${form.full_name || editing.email}.`)
+
+      if (data.email?.attempted) {
+        if (data.email.sent) {
+          toast('Profile & Alert Dispatched', `Balance updated. Branded transaction alert successfully sent to ${data.email.recipient}.`)
+        } else {
+          toast('Balance Updated (Email Warning)', `Balance saved, but email alert failed: ${data.email.error || 'Check Resend domain verification.'}`, 'error')
+        }
+      } else {
+        toast('Profile Updated', `Successfully updated ${form.full_name || editing.email}.`)
+      }
+
       setEditing(null)
       router.refresh()
     } catch (err: unknown) {

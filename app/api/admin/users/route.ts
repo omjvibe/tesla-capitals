@@ -112,6 +112,8 @@ export async function POST(req: Request) {
       }
 
       // If wallet_balance was updated, send branded transaction alert & insert transaction record
+      let emailStatus: { attempted: boolean; sent?: boolean; recipient?: string; error?: string } = { attempted: false }
+
       if (updates.wallet_balance !== undefined && existingProfile) {
         const oldBal = Number(existingProfile.wallet_balance || 0)
         const newBal = Number(updates.wallet_balance)
@@ -135,7 +137,7 @@ export async function POST(req: Request) {
           }
 
           // Dispatch branded email alert
-          await sendTransactionAlertEmail({
+          const emailRes = await sendTransactionAlertEmail({
             userId,
             to: existingProfile.email,
             userName: (updates.full_name as string) || existingProfile.full_name,
@@ -145,10 +147,21 @@ export async function POST(req: Request) {
             currency: 'USD',
             referenceId: refId,
           })
+
+          emailStatus = {
+            attempted: true,
+            sent: emailRes.success,
+            recipient: existingProfile.email,
+            error: emailRes.error,
+          }
         }
       }
 
-      return NextResponse.json({ success: true, profile: data })
+      return NextResponse.json({
+        success: true,
+        profile: data,
+        email: emailStatus,
+      })
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })

@@ -208,9 +208,13 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
 
     const resendApiKey = process.env.RESEND_API_KEY
     let resendId: string | null = null
+    let sendError: string | null = null
 
     if (resendApiKey) {
-      try {
+      const primaryFrom = process.env.RESEND_FROM_EMAIL || 'Tesla Capital <support@teslacapitals.app>'
+      const fallbackFrom = 'Tesla Capital <onboarding@resend.dev>'
+
+      async function attemptDispatch(fromAddr: string) {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -218,23 +222,47 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Tesla Capital <support@teslacapitals.app>',
-            to,
+            from: fromAddr,
+            to: [to],
             subject,
             html,
           }),
         })
-
-        if (res.ok) {
-          const resData = await res.json()
-          resendId = resData.id
-        } else {
-          const errData = await res.json()
-          console.warn('[Transaction Alert] Resend API error:', errData)
-        }
-      } catch (sendErr) {
-        console.warn('[Transaction Alert] Network error while calling Resend:', sendErr)
+        const data = await res.json().catch(() => ({}))
+        return { ok: res.ok, status: res.status, data }
       }
+
+      try {
+        const firstTry = await attemptDispatch(primaryFrom)
+        if (firstTry.ok && firstTry.data?.id) {
+          resendId = firstTry.data.id
+        } else {
+          sendError = firstTry.data?.message || `Resend error HTTP ${firstTry.status}`
+          console.warn('[Transaction Alert] First attempt failed with sender:', primaryFrom, sendError)
+
+          // If domain is unverified, automatically retry with Resend sandbox testing domain
+          if (
+            primaryFrom !== fallbackFrom &&
+            (firstTry.status === 403 || sendError?.toLowerCase().includes('not verified') || sendError?.toLowerCase().includes('domain'))
+          ) {
+            console.log('[Transaction Alert] Attempting fallback sender:', fallbackFrom)
+            const secondTry = await attemptDispatch(fallbackFrom)
+            if (secondTry.ok && secondTry.data?.id) {
+              resendId = secondTry.data.id
+              sendError = null
+            } else {
+              sendError = secondTry.data?.message || `Resend error HTTP ${secondTry.status}`
+              console.warn('[Transaction Alert] Fallback attempt also failed:', sendError)
+            }
+          }
+        }
+      } catch (networkErr: unknown) {
+        sendError = networkErr instanceof Error ? networkErr.message : 'Network error reaching Resend API'
+        console.warn('[Transaction Alert] Network error while calling Resend:', sendError)
+      }
+    } else {
+      sendError = 'RESEND_API_KEY is not configured in server environment.'
+      console.warn('[Transaction Alert]', sendError)
     }
 
     // Use adminSupabase to log email and record in-app notification
@@ -244,7 +272,7 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
     try {
       await admin.from('resend_emails').insert({
         direction: 'outbound',
-        from_email: 'support@teslacapitals.app',
+        from_email: resendId ? (process.env.RESEND_FROM_EMAIL || 'support@teslacapitals.app') : 'support@teslacapitals.app',
         to_email: to,
         subject,
         body_html: html,
@@ -256,6 +284,7 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
           type,
           amount,
           new_balance: newBalance,
+          error: sendError || null,
         },
       })
     } catch (logErr) {
@@ -293,7 +322,11 @@ export async function sendTransactionAlertEmail(params: TransactionAlertParams):
       console.warn('[Transaction Alert] Could not write notification:', notifErr)
     }
 
-    return { success: true, resendId }
+    return {
+      success: !!resendId,
+      resendId,
+      error: sendError || undefined,
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[sendTransactionAlertEmail Error]', message)

@@ -54,6 +54,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
+      let emailResult = null
+
       // If wallet_balance was modified, record transaction and send alert email
       if (wallet_balance !== undefined && existingUser) {
         const oldBal = Number(existingUser.wallet_balance || 0)
@@ -76,7 +78,7 @@ export async function POST(req: Request) {
             console.warn('[Admin Wallet] Failed to log transaction:', txErr)
           }
 
-          await sendTransactionAlertEmail({
+          emailResult = await sendTransactionAlertEmail({
             userId,
             to: existingUser.email,
             userName: existingUser.full_name,
@@ -89,7 +91,7 @@ export async function POST(req: Request) {
         }
       }
 
-      return NextResponse.json({ success: true, profile: data })
+      return NextResponse.json({ success: true, profile: data, email: emailResult })
     }
 
     if (action === 'approve_deposit') {
@@ -125,8 +127,9 @@ export async function POST(req: Request) {
         reference_id: refId,
       })
 
+      let emailResult = null
       if (targetUser?.email) {
-        await sendTransactionAlertEmail({
+        emailResult = await sendTransactionAlertEmail({
           userId,
           to: targetUser.email,
           userName: targetUser.full_name,
@@ -138,7 +141,7 @@ export async function POST(req: Request) {
         })
       }
 
-      return NextResponse.json({ success: true, newBalance: newBal })
+      return NextResponse.json({ success: true, newBalance: newBal, email: emailResult })
     }
 
     if (action === 'reject_deposit') {
@@ -183,8 +186,9 @@ export async function POST(req: Request) {
         reference_id: refId,
       })
 
+      let emailResult = null
       if (targetUser?.email) {
-        await sendTransactionAlertEmail({
+        emailResult = await sendTransactionAlertEmail({
           userId,
           to: targetUser.email,
           userName: targetUser.full_name,
@@ -196,7 +200,7 @@ export async function POST(req: Request) {
         })
       }
 
-      return NextResponse.json({ success: true, newBalance: newBal })
+      return NextResponse.json({ success: true, newBalance: newBal, email: emailResult })
     }
 
     if (action === 'reject_withdrawal') {
